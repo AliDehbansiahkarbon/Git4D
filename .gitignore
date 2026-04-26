@@ -1,0 +1,17 @@
+*.~*
+*.dcu
+*.dcp
+*.bpl
+*.bpi
+*.res
+*.local
+*.dproj.local
+*.dsk
+*.dsv
+*.identcache
+__history/
+__recovery/
+Win32/
+Win64/
+Debug/
+Release/
