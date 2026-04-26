@@ -66,8 +66,6 @@ type
   TSmartGitInsightWizard = class(TNotifierObject, IOTAWizard, IOTAMenuWizard)
   private
     FActionList: TActionList;
-    FEditorActionList: TActionList;
-    FEditorMenuInstalled: Boolean;
     FMainMenu: TMenuItem;
     FMainMenuInstalled: Boolean;
     FProjectMenuNotifier: IOTAProjectMenuItemCreatorNotifier;
@@ -80,7 +78,6 @@ type
     function CreateActionItem(const Caption: string; const Handler: TNotifyEvent; const Shortcut: TShortCut = 0): TMenuItem;
     function CreateSeparator: TMenuItem;
     function FindToolsMenu(MainMenu: TMainMenu): TMenuItem;
-    procedure InstallEditorLocalMenu;
     procedure InstallMainMenu;
     procedure InstallProjectManagerMenu;
     procedure MainMenuPopup(Sender: TObject);
@@ -104,11 +101,6 @@ type
     procedure OpenTerminal(Sender: TObject);
     procedure ShowSettings(Sender: TObject);
     procedure ShowAbout(Sender: TObject);
-    procedure DiffCurrentFile(Sender: TObject);
-    procedure FileHistory(Sender: TObject);
-    procedure BlameCurrentFile(Sender: TObject);
-    procedure ResetCurrentFile(Sender: TObject);
-    procedure StageCurrentFile(Sender: TObject);
     procedure TortoiseGitCommand(Sender: TObject);
   public
     constructor Create;
@@ -135,11 +127,6 @@ uses
   SmartGitInsight.Git,
   SmartGitInsight.Options,
   SmartGitInsight.Repository;
-
-const
-  SGIEditorMenuCategory = 'SmartGitInsight';
-  SGIEditorNativeCategory = 'SmartGitInsight.Native';
-  SGIEditorTortoiseCategory = 'SmartGitInsight.TortoiseGit';
 
 constructor TSmartGitInsightProjectMenuItem.Create(AKind: TSmartGitInsightProjectMenuKind; const ACaption, AName: string);
 begin
@@ -291,10 +278,8 @@ constructor TSmartGitInsightWizard.Create;
 begin
   inherited Create;
   FActionList := TActionList.Create(nil);
-  FEditorActionList := TActionList.Create(nil);
   FProjectMenuNotifierIndex := -1;
   InstallMainMenu;
-  InstallEditorLocalMenu;
   InstallProjectManagerMenu;
 end;
 
@@ -308,7 +293,6 @@ begin
   if (FMainMenu <> nil) and (FMainMenu.Parent <> nil) then
     FMainMenu.Parent.Remove(FMainMenu);
   FMainMenu.Free;
-  FEditorActionList.Free;
   FActionList.Free;
   inherited Destroy;
 end;
@@ -486,90 +470,6 @@ begin
   end;
 end;
 
-procedure TSmartGitInsightWizard.InstallEditorLocalMenu;
-var
-  Action: TAction;
-  EditorLocalMenu: INTAEditorLocalMenu;
-  EditorServices: IOTAEditorServices;
-begin
-  if FEditorMenuInstalled then
-    Exit;
-
-  if not Supports(BorlandIDEServices, IOTAEditorServices, EditorServices) then
-    Exit;
-
-  EditorLocalMenu := EditorServices.GetEditorLocalMenu;
-  if EditorLocalMenu = nil then
-    Exit;
-
-  Action := TAction.Create(FEditorActionList);
-  Action.ActionList := FEditorActionList;
-  Action.Caption := SGIProductName;
-  Action.Category := SGIEditorMenuCategory;
-
-  if TSmartGitInsightTortoiseGit.IsEnabledAndAvailable then
-  begin
-    Action := TAction.Create(FEditorActionList);
-    Action.ActionList := FEditorActionList;
-    Action.Caption := 'TortoiseGit';
-    Action.Category := SGIEditorTortoiseCategory;
-
-    Action := TAction.Create(FEditorActionList);
-    Action.ActionList := FEditorActionList;
-    Action.Caption := 'Show Log';
-    Action.Category := SGIEditorTortoiseCategory + '.Commands';
-    Action.Tag := Ord(tgLog);
-    Action.OnExecute := TortoiseGitCommand;
-
-    Action := TAction.Create(FEditorActionList);
-    Action.ActionList := FEditorActionList;
-    Action.Caption := 'Diff';
-    Action.Category := SGIEditorTortoiseCategory + '.Commands';
-    Action.Tag := Ord(tgDiff);
-    Action.OnExecute := TortoiseGitCommand;
-
-    Action := TAction.Create(FEditorActionList);
-    Action.ActionList := FEditorActionList;
-    Action.Caption := 'Blame';
-    Action.Category := SGIEditorTortoiseCategory + '.Commands';
-    Action.Tag := Ord(tgBlame);
-    Action.OnExecute := TortoiseGitCommand;
-  end;
-
-  Action := TAction.Create(FEditorActionList);
-  Action.ActionList := FEditorActionList;
-  Action.Caption := 'Diff Current File';
-  Action.Category := SGIEditorNativeCategory;
-  Action.OnExecute := DiffCurrentFile;
-
-  Action := TAction.Create(FEditorActionList);
-  Action.ActionList := FEditorActionList;
-  Action.Caption := 'File History';
-  Action.Category := SGIEditorNativeCategory;
-  Action.OnExecute := FileHistory;
-
-  Action := TAction.Create(FEditorActionList);
-  Action.ActionList := FEditorActionList;
-  Action.Caption := 'Blame Current File';
-  Action.Category := SGIEditorNativeCategory;
-  Action.OnExecute := BlameCurrentFile;
-
-  Action := TAction.Create(FEditorActionList);
-  Action.ActionList := FEditorActionList;
-  Action.Caption := 'Stage Current File';
-  Action.Category := SGIEditorNativeCategory;
-  Action.OnExecute := StageCurrentFile;
-
-  Action := TAction.Create(FEditorActionList);
-  Action.ActionList := FEditorActionList;
-  Action.Caption := 'Reset Current File Changes';
-  Action.Category := SGIEditorNativeCategory;
-  Action.OnExecute := ResetCurrentFile;
-
-  EditorLocalMenu.RegisterActionList(FEditorActionList, SGIEditorMenuCategory, cEdMenuCatVersionControl);
-  FEditorMenuInstalled := True;
-end;
-
 procedure TSmartGitInsightWizard.InstallProjectManagerMenu;
 var
   ProjectManager: IOTAProjectManager;
@@ -744,31 +644,6 @@ end;
 procedure TSmartGitInsightWizard.ShowAbout(Sender: TObject);
 begin
   ShowSmartGitInsightAboutDialog;
-end;
-
-procedure TSmartGitInsightWizard.DiffCurrentFile(Sender: TObject);
-begin
-  TSmartGitInsightGit.DiffActiveFile;
-end;
-
-procedure TSmartGitInsightWizard.FileHistory(Sender: TObject);
-begin
-  TSmartGitInsightGit.FileHistory;
-end;
-
-procedure TSmartGitInsightWizard.BlameCurrentFile(Sender: TObject);
-begin
-  TSmartGitInsightGit.BlameActiveFile;
-end;
-
-procedure TSmartGitInsightWizard.ResetCurrentFile(Sender: TObject);
-begin
-  TSmartGitInsightGit.ResetActiveFile;
-end;
-
-procedure TSmartGitInsightWizard.StageCurrentFile(Sender: TObject);
-begin
-  TSmartGitInsightGit.StageActiveFile;
 end;
 
 procedure TSmartGitInsightWizard.TortoiseGitCommand(Sender: TObject);
