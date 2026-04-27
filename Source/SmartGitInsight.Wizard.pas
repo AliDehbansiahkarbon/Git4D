@@ -11,6 +11,22 @@ uses
   SmartGitInsight.TortoiseGit;
 
 type
+  TSmartGitInsightWizard = class;
+
+  TSmartGitInsightEditorPopupHook = class(TComponent)
+  private
+    FOldOnPopup: TNotifyEvent;
+    FPopupMenu: TPopupMenu;
+    FWizard: TSmartGitInsightWizard;
+    procedure PopupOpening(Sender: TObject);
+  protected
+    procedure Notification(AComponent: TComponent; Operation: TOperation); override;
+  public
+    constructor Create(AWizard: TSmartGitInsightWizard; APopupMenu: TPopupMenu); reintroduce;
+    destructor Destroy; override;
+    property PopupMenu: TPopupMenu read FPopupMenu;
+  end;
+
   TSmartGitInsightProjectMenuKind = (
     pmStatus,
     pmCommit,
@@ -57,31 +73,57 @@ type
     function PostExecute(const MenuContextList: IInterfaceList): Boolean;
   end;
 
-  TSmartGitInsightProjectMenuNotifier = class(TNotifierObject, IOTAProjectMenuItemCreatorNotifier)
+  TSmartGitInsightProjectMenuNotifier = class(TNotifierObject, IOTAProjectMenuItemCreatorNotifier,
+    INTAProjectMenuCreatorNotifier)
+  private
+    procedure AddProjectCommand(Menu: TMenuItem; AKind: TSmartGitInsightProjectMenuKind; const ACaption: string);
+    procedure AddProjectSeparator(Menu: TMenuItem);
+    procedure AddProjectTortoiseGitCommand(Menu: TMenuItem; Command: TTortoiseGitCommand);
+    procedure ProjectCommandClick(Sender: TObject);
+    procedure ProjectTortoiseGitClick(Sender: TObject);
   public
     procedure AddMenu(const Project: IOTAProject; const IdentList: TStrings;
-      const ProjectManagerMenuList: IInterfaceList; IsMultiSelect: Boolean);
+      const ProjectManagerMenuList: IInterfaceList; IsMultiSelect: Boolean); overload;
+    function AddMenu(const Ident: string): TMenuItem; overload;
+    function CanHandle(const Ident: string): Boolean;
   end;
 
   TSmartGitInsightWizard = class(TNotifierObject, IOTAWizard, IOTAMenuWizard)
   private
     FActionList: TActionList;
+    FEditorMenuInstalled: Boolean;
+    FEditorPopupHookTimer: TTimer;
+    FEditorPopupHooks: TList;
     FMainMenu: TMenuItem;
     FMainMenuInstalled: Boolean;
-    FProjectMenuNotifier: IOTAProjectMenuItemCreatorNotifier;
+    FMainMenuRetryCount: Integer;
+    FMainMenuRetryTimer: TTimer;
+    FProjectMenuNotifier: TSmartGitInsightProjectMenuNotifier;
     FProjectMenuNotifierIndex: Integer;
+    FProjectMenuUsesLegacyNotifier: Boolean;
     procedure AddAction(const Caption: string; const Handler: TNotifyEvent; const Shortcut: TShortCut = 0);
+    procedure AddGitCommand(Menu: TMenuItem; const Caption: string; const Handler: TNotifyEvent);
+    function AddGitSubMenu(ParentMenu: TMenuItem): TMenuItem;
     function AddTortoiseGitSubMenu(ParentMenu: TMenuItem): Boolean;
     procedure AddTortoiseGitCommand(Menu: TMenuItem; Command: TTortoiseGitCommand);
     procedure AddSeparator;
     procedure AddSubMenu(const Caption: string; const Items: array of TMenuItem);
     function CreateActionItem(const Caption: string; const Handler: TNotifyEvent; const Shortcut: TShortCut = 0): TMenuItem;
     function CreateSeparator: TMenuItem;
+    procedure EditorPopupHookTimer(Sender: TObject);
     function FindToolsMenu(MainMenu: TMainMenu): TMenuItem;
+    procedure ClearLegacyEditorLocalMenuRegistrations;
+    procedure HookEditorPopups;
+    procedure HookPopupMenu(PopupMenu: TPopupMenu);
+    procedure InstallEditorLocalMenu;
     procedure InstallMainMenu;
     procedure InstallProjectManagerMenu;
+    procedure MainMenuRetryTimer(Sender: TObject);
+    procedure UninstallEditorLocalMenu;
     procedure MainMenuPopup(Sender: TObject);
     procedure RebuildMainMenuItems;
+    procedure RebuildEditorPopupMenu(PopupMenu: TPopupMenu);
+    procedure RemoveSmartGitInsightPopupItem(PopupMenu: TPopupMenu);
     procedure BrowseRepository(Sender: TObject);
     procedure ShowStatus(Sender: TObject);
     procedure Commit(Sender: TObject);
@@ -98,9 +140,17 @@ type
     procedure FormatPatch(Sender: TObject);
     procedure ManageRemotes(Sender: TObject);
     procedure EditGitIgnore(Sender: TObject);
+    procedure DiffCurrentFile(Sender: TObject);
+    procedure FileHistory(Sender: TObject);
+    procedure BlameCurrentFile(Sender: TObject);
+    procedure StageCurrentFile(Sender: TObject);
+    procedure ResetCurrentFile(Sender: TObject);
     procedure OpenTerminal(Sender: TObject);
     procedure ShowSettings(Sender: TObject);
     procedure ShowAbout(Sender: TObject);
+    procedure ScheduleMainMenuRetry;
+    procedure UpdateEditorAction(Sender: TObject);
+    procedure UpdateEditorTortoiseGitAction(Sender: TObject);
     procedure TortoiseGitCommand(Sender: TObject);
   public
     constructor Create;
@@ -126,7 +176,53 @@ uses
   SmartGitInsight.Dialogs,
   SmartGitInsight.Git,
   SmartGitInsight.Options,
-  SmartGitInsight.Repository;
+  SmartGitInsight.Repository,
+  SmartGitInsight.Settings;
+
+const
+  SGILegacyEditorActionListCategory = 'SmartGitInsight';
+  SGILegacyEditorActionListCategory2 = 'SmartGitInsight.EditorLocalMenu';
+  SGIMainMenuRetryLimit = 20;
+
+function NormalizedCaption(const Caption: string): string;
+begin
+  Result := StringReplace(Caption, '&', '', [rfReplaceAll]);
+end;
+
+constructor TSmartGitInsightEditorPopupHook.Create(AWizard: TSmartGitInsightWizard; APopupMenu: TPopupMenu);
+begin
+  inherited Create(nil);
+  FWizard := AWizard;
+  FPopupMenu := APopupMenu;
+  if FPopupMenu <> nil then
+  begin
+    FPopupMenu.FreeNotification(Self);
+    FOldOnPopup := FPopupMenu.OnPopup;
+    FPopupMenu.OnPopup := PopupOpening;
+  end;
+end;
+
+destructor TSmartGitInsightEditorPopupHook.Destroy;
+begin
+  if FPopupMenu <> nil then
+    FPopupMenu.OnPopup := FOldOnPopup;
+  inherited Destroy;
+end;
+
+procedure TSmartGitInsightEditorPopupHook.Notification(AComponent: TComponent; Operation: TOperation);
+begin
+  inherited Notification(AComponent, Operation);
+  if (Operation = opRemove) and (AComponent = FPopupMenu) then
+    FPopupMenu := nil;
+end;
+
+procedure TSmartGitInsightEditorPopupHook.PopupOpening(Sender: TObject);
+begin
+  if Assigned(FOldOnPopup) then
+    FOldOnPopup(Sender);
+  if (FWizard <> nil) and (Sender is TPopupMenu) then
+    FWizard.RebuildEditorPopupMenu(Sender as TPopupMenu);
+end;
 
 constructor TSmartGitInsightProjectMenuItem.Create(AKind: TSmartGitInsightProjectMenuKind; const ACaption, AName: string);
 begin
@@ -274,25 +370,164 @@ begin
     SGIProductName + ': File History', 'SmartGitInsightProjectHistory') as IOTAProjectManagerMenu);
 end;
 
+procedure TSmartGitInsightProjectMenuNotifier.AddProjectCommand(Menu: TMenuItem;
+  AKind: TSmartGitInsightProjectMenuKind; const ACaption: string);
+var
+  Item: TMenuItem;
+begin
+  Item := TMenuItem.Create(Menu);
+  Item.Caption := ACaption;
+  Item.Tag := Ord(AKind);
+  Item.OnClick := ProjectCommandClick;
+  Menu.Add(Item);
+end;
+
+procedure TSmartGitInsightProjectMenuNotifier.AddProjectSeparator(Menu: TMenuItem);
+var
+  Item: TMenuItem;
+begin
+  Item := TMenuItem.Create(Menu);
+  Item.Caption := '-';
+  Menu.Add(Item);
+end;
+
+procedure TSmartGitInsightProjectMenuNotifier.AddProjectTortoiseGitCommand(Menu: TMenuItem;
+  Command: TTortoiseGitCommand);
+var
+  Item: TMenuItem;
+begin
+  Item := TMenuItem.Create(Menu);
+  Item.Caption := TSmartGitInsightTortoiseGit.CommandDisplayName(Command);
+  Item.Tag := Ord(Command);
+  Item.HelpContext := Ord(Command);
+  Item.OnClick := ProjectTortoiseGitClick;
+  Menu.Add(Item);
+end;
+
+function TSmartGitInsightProjectMenuNotifier.AddMenu(const Ident: string): TMenuItem;
+var
+  TortoiseMenu: TMenuItem;
+begin
+  Result := TMenuItem.Create(nil);
+  Result.Caption := SGIProductName;
+
+  if SmartGitInsightSettings.TortoiseGitEnabled then
+  begin
+    TortoiseMenu := TMenuItem.Create(Result);
+    TortoiseMenu.Caption := 'TortoiseGit';
+    AddProjectTortoiseGitCommand(TortoiseMenu, tgLog);
+    AddProjectTortoiseGitCommand(TortoiseMenu, tgDiff);
+    AddProjectTortoiseGitCommand(TortoiseMenu, tgCommit);
+    AddProjectTortoiseGitCommand(TortoiseMenu, tgPull);
+    AddProjectTortoiseGitCommand(TortoiseMenu, tgPush);
+    AddProjectTortoiseGitCommand(TortoiseMenu, tgSync);
+    AddProjectTortoiseGitCommand(TortoiseMenu, tgReflog);
+    AddProjectTortoiseGitCommand(TortoiseMenu, tgRepoBrowser);
+    AddProjectTortoiseGitCommand(TortoiseMenu, tgSettings);
+    Result.Add(TortoiseMenu);
+    AddProjectSeparator(Result);
+  end;
+
+  AddProjectCommand(Result, pmStatus, 'Status');
+  AddProjectCommand(Result, pmCommit, 'Commit');
+  AddProjectCommand(Result, pmPull, 'Pull');
+  AddProjectCommand(Result, pmPush, 'Push');
+  AddProjectSeparator(Result);
+  AddProjectCommand(Result, pmDiff, 'Diff Current File');
+  AddProjectCommand(Result, pmHistory, 'File History');
+end;
+
+function TSmartGitInsightProjectMenuNotifier.CanHandle(const Ident: string): Boolean;
+begin
+  Result := True;
+end;
+
+procedure TSmartGitInsightProjectMenuNotifier.ProjectCommandClick(Sender: TObject);
+var
+  Kind: TSmartGitInsightProjectMenuKind;
+begin
+  if not (Sender is TMenuItem) then
+    Exit;
+
+  Kind := TSmartGitInsightProjectMenuKind((Sender as TMenuItem).Tag);
+  case Kind of
+    pmStatus:
+      TSmartGitInsightGit.RunGitForActiveRepository('status --short --branch');
+    pmCommit:
+      TSmartGitInsightGit.RunGitForActiveRepository('status --short && git add --patch && git commit');
+    pmPull:
+      TSmartGitInsightGit.RunGitForActiveRepository('pull --stat');
+    pmPush:
+      TSmartGitInsightGit.RunGitForActiveRepository('push');
+    pmDiff:
+      TSmartGitInsightGit.DiffActiveFile;
+    pmHistory:
+      TSmartGitInsightGit.FileHistory;
+  end;
+end;
+
+procedure TSmartGitInsightProjectMenuNotifier.ProjectTortoiseGitClick(Sender: TObject);
+var
+  Command: TTortoiseGitCommand;
+  CommandOrdinal: Integer;
+begin
+  try
+    if not (Sender is TMenuItem) then
+      Exit;
+
+    CommandOrdinal := (Sender as TMenuItem).HelpContext;
+    if (CommandOrdinal < Ord(Low(TTortoiseGitCommand))) or
+      (CommandOrdinal > Ord(High(TTortoiseGitCommand))) then
+      raise Exception.CreateFmt('Invalid TortoiseGit command id: %d', [CommandOrdinal]);
+
+    Command := TTortoiseGitCommand(CommandOrdinal);
+    if Command in [tgDiff, tgPreviousDiff, tgBlame, tgResolve] then
+      TSmartGitInsightTortoiseGit.RunForActiveFile(Command)
+    else
+      TSmartGitInsightTortoiseGit.RunForActiveRepository(Command);
+  except
+    on E: Exception do
+      MessageDlg(E.Message, mtError, [mbOK], 0);
+  end;
+end;
+
 constructor TSmartGitInsightWizard.Create;
 begin
   inherited Create;
   FActionList := TActionList.Create(nil);
   FProjectMenuNotifierIndex := -1;
-  InstallMainMenu;
-  InstallProjectManagerMenu;
+  try
+    InstallMainMenu;
+  except
+    ScheduleMainMenuRetry;
+  end;
+  try
+    ClearLegacyEditorLocalMenuRegistrations;
+    InstallEditorLocalMenu;
+  except
+    UninstallEditorLocalMenu;
+  end;
+  try
+    InstallProjectManagerMenu;
+  except
+  end;
 end;
 
 destructor TSmartGitInsightWizard.Destroy;
 begin
+  UninstallEditorLocalMenu;
   if FProjectMenuNotifierIndex >= 0 then
     try
-      (BorlandIDEServices as IOTAProjectManager).RemoveMenuItemCreatorNotifier(FProjectMenuNotifierIndex);
+      if FProjectMenuUsesLegacyNotifier then
+        (BorlandIDEServices as IOTAProjectManager).RemoveMenuCreatorNotifier(FProjectMenuNotifierIndex)
+      else
+        (BorlandIDEServices as IOTAProjectManager).RemoveMenuItemCreatorNotifier(FProjectMenuNotifierIndex);
     except
     end;
   if (FMainMenu <> nil) and (FMainMenu.Parent <> nil) then
     FMainMenu.Parent.Remove(FMainMenu);
   FMainMenu.Free;
+  FMainMenuRetryTimer.Free;
   FActionList.Free;
   inherited Destroy;
 end;
@@ -353,6 +588,99 @@ begin
   Result.Caption := '-';
 end;
 
+procedure TSmartGitInsightWizard.EditorPopupHookTimer(Sender: TObject);
+begin
+  HookEditorPopups;
+end;
+
+procedure TSmartGitInsightWizard.ClearLegacyEditorLocalMenuRegistrations;
+var
+  EditorLocalMenu: INTAEditorLocalMenu;
+  EditorServices: IOTAEditorServices;
+begin
+  try
+    if Supports(BorlandIDEServices, IOTAEditorServices, EditorServices) then
+    begin
+      EditorLocalMenu := EditorServices.GetEditorLocalMenu;
+      if EditorLocalMenu <> nil then
+      begin
+        try
+          EditorLocalMenu.UnregisterActionList(SGILegacyEditorActionListCategory);
+        except
+        end;
+        try
+          EditorLocalMenu.UnregisterActionList(SGILegacyEditorActionListCategory2);
+        except
+        end;
+      end;
+    end;
+  except
+  end;
+end;
+
+procedure TSmartGitInsightWizard.HookEditorPopups;
+var
+  ComponentIndex: Integer;
+  EditWindow: INTAEditWindow;
+  Form: TCustomForm;
+  PopupMenu: TPopupMenu;
+  ServiceIndex: Integer;
+  Services: INTAEditorServices;
+begin
+  if not SmartGitInsightSettings.EditorPopupEnabled then
+    Exit;
+
+  if FEditorPopupHooks = nil then
+    FEditorPopupHooks := TList.Create;
+
+  if not Supports(BorlandIDEServices, INTAEditorServices, Services) then
+    Exit;
+
+  for ServiceIndex := 0 to Services.GetEditWindowCount - 1 do
+  begin
+    EditWindow := Services.GetEditWindow(ServiceIndex);
+    if EditWindow = nil then
+      Continue;
+
+    Form := EditWindow.GetForm;
+    if Form = nil then
+      Continue;
+
+    for ComponentIndex := 0 to Form.ComponentCount - 1 do
+      if Form.Components[ComponentIndex] is TPopupMenu then
+      begin
+        PopupMenu := TPopupMenu(Form.Components[ComponentIndex]);
+        HookPopupMenu(PopupMenu);
+      end;
+  end;
+end;
+
+procedure TSmartGitInsightWizard.HookPopupMenu(PopupMenu: TPopupMenu);
+var
+  Index: Integer;
+  Hook: TSmartGitInsightEditorPopupHook;
+begin
+  if PopupMenu = nil then
+    Exit;
+
+  if FEditorPopupHooks = nil then
+    FEditorPopupHooks := TList.Create;
+
+  for Index := FEditorPopupHooks.Count - 1 downto 0 do
+  begin
+    Hook := TSmartGitInsightEditorPopupHook(FEditorPopupHooks[Index]);
+    if Hook.PopupMenu = nil then
+    begin
+      Hook.Free;
+      FEditorPopupHooks.Delete(Index);
+    end
+    else if Hook.PopupMenu = PopupMenu then
+      Exit;
+  end;
+
+  FEditorPopupHooks.Add(TSmartGitInsightEditorPopupHook.Create(Self, PopupMenu));
+end;
+
 procedure TSmartGitInsightWizard.AddAction(const Caption: string; const Handler: TNotifyEvent;
   const Shortcut: TShortCut);
 begin
@@ -365,6 +693,7 @@ var
 begin
   Item := CreateActionItem(TSmartGitInsightTortoiseGit.CommandDisplayName(Command), TortoiseGitCommand);
   Item.Tag := Ord(Command);
+  Item.HelpContext := Ord(Command);
   Menu.Add(Item);
 end;
 
@@ -385,6 +714,89 @@ begin
   FMainMenu.Add(Menu);
 end;
 
+procedure TSmartGitInsightWizard.AddGitCommand(Menu: TMenuItem; const Caption: string; const Handler: TNotifyEvent);
+begin
+  Menu.Add(CreateActionItem(Caption, Handler));
+end;
+
+function TSmartGitInsightWizard.AddGitSubMenu(ParentMenu: TMenuItem): TMenuItem;
+begin
+  Result := TMenuItem.Create(ParentMenu);
+  Result.Caption := 'Git';
+
+  AddGitCommand(Result, '&Browse Repository', BrowseRepository);
+  AddGitCommand(Result, '&Status', ShowStatus);
+  AddGitCommand(Result, '&Commit', Commit);
+  AddGitCommand(Result, '&Fetch', Fetch);
+  AddGitCommand(Result, '&Pull', Pull);
+  AddGitCommand(Result, 'Pu&sh', Push);
+  AddGitCommand(Result, 'Stas&h', Stash);
+  Result.Add(CreateSeparator);
+  AddGitCommand(Result, 'Diff Current File', DiffCurrentFile);
+  AddGitCommand(Result, 'File History', FileHistory);
+  AddGitCommand(Result, 'Blame Current File', BlameCurrentFile);
+  AddGitCommand(Result, 'Stage Current File', StageCurrentFile);
+  AddGitCommand(Result, 'Reset Current File Changes', ResetCurrentFile);
+  Result.Add(CreateSeparator);
+  AddGitCommand(Result, 'Checkout &Branch', CheckoutBranch);
+  AddGitCommand(Result, 'Create Bra&nch', CreateBranch);
+  AddGitCommand(Result, '&Merge Branch', MergeBranch);
+  AddGitCommand(Result, '&Rebase Branch', RebaseBranch);
+  AddGitCommand(Result, 'Cherry &Pick', CherryPick);
+  Result.Add(CreateSeparator);
+  AddGitCommand(Result, '&Apply Patch', ApplyPatch);
+  AddGitCommand(Result, '&Format Patch', FormatPatch);
+  AddGitCommand(Result, 'Manage Rem&otes', ManageRemotes);
+  AddGitCommand(Result, 'Edit .&gitignore', EditGitIgnore);
+  AddGitCommand(Result, 'Git &Terminal', OpenTerminal);
+
+  ParentMenu.Add(Result);
+end;
+
+procedure TSmartGitInsightWizard.InstallEditorLocalMenu;
+begin
+  if FEditorMenuInstalled or not SmartGitInsightSettings.EditorPopupEnabled then
+    Exit;
+
+  if FEditorPopupHooks = nil then
+    FEditorPopupHooks := TList.Create;
+
+  HookEditorPopups;
+
+  if FEditorPopupHookTimer = nil then
+  begin
+    FEditorPopupHookTimer := TTimer.Create(nil);
+    FEditorPopupHookTimer.Enabled := False;
+    FEditorPopupHookTimer.Interval := 1000;
+    FEditorPopupHookTimer.OnTimer := EditorPopupHookTimer;
+  end;
+
+  FEditorPopupHookTimer.Enabled := True;
+  FEditorMenuInstalled := True;
+end;
+
+procedure TSmartGitInsightWizard.UninstallEditorLocalMenu;
+begin
+  if (not FEditorMenuInstalled) and (FEditorPopupHookTimer = nil) and (FEditorPopupHooks = nil) then
+    Exit;
+
+  FEditorPopupHookTimer.Free;
+  FEditorPopupHookTimer := nil;
+
+  if FEditorPopupHooks <> nil then
+  begin
+    while FEditorPopupHooks.Count > 0 do
+    begin
+      TObject(FEditorPopupHooks[0]).Free;
+      FEditorPopupHooks.Delete(0);
+    end;
+    FEditorPopupHooks.Free;
+    FEditorPopupHooks := nil;
+  end;
+
+  FEditorMenuInstalled := False;
+end;
+
 procedure TSmartGitInsightWizard.InstallMainMenu;
 var
   MainMenu: TMainMenu;
@@ -394,23 +806,70 @@ begin
     Exit;
 
   if not Supports(BorlandIDEServices, INTAServices) then
+  begin
+    ScheduleMainMenuRetry;
     Exit;
+  end;
 
   MainMenu := (BorlandIDEServices as INTAServices).MainMenu;
   if MainMenu = nil then
+  begin
+    ScheduleMainMenuRetry;
     Exit;
+  end;
 
   ToolsMenu := FindToolsMenu(MainMenu);
   if ToolsMenu = nil then
+  begin
+    ScheduleMainMenuRetry;
     Exit;
+  end;
+
+  if FMainMenuRetryTimer <> nil then
+    FMainMenuRetryTimer.Enabled := False;
 
   FMainMenu := TMenuItem.Create(nil);
   FMainMenu.Caption := '&Smart GitInsight';
   FMainMenu.OnClick := MainMenuPopup;
 
   RebuildMainMenuItems;
-  ToolsMenu.Add(FMainMenu);
+  try
+    (BorlandIDEServices as INTAServices).AddActionMenu('ToolsMenu', nil, FMainMenu, True, True);
+  except
+    ToolsMenu.Add(FMainMenu);
+  end;
   FMainMenuInstalled := True;
+end;
+
+procedure TSmartGitInsightWizard.ScheduleMainMenuRetry;
+begin
+  if FMainMenuInstalled or (FMainMenuRetryCount >= SGIMainMenuRetryLimit) then
+    Exit;
+
+  if FMainMenuRetryTimer = nil then
+  begin
+    FMainMenuRetryTimer := TTimer.Create(nil);
+    FMainMenuRetryTimer.Enabled := False;
+    FMainMenuRetryTimer.Interval := 500;
+    FMainMenuRetryTimer.OnTimer := MainMenuRetryTimer;
+  end;
+
+  FMainMenuRetryTimer.Enabled := True;
+end;
+
+procedure TSmartGitInsightWizard.MainMenuRetryTimer(Sender: TObject);
+begin
+  if FMainMenuRetryTimer <> nil then
+    FMainMenuRetryTimer.Enabled := False;
+
+  Inc(FMainMenuRetryCount);
+  try
+    InstallMainMenu;
+  except
+  end;
+
+  if not FMainMenuInstalled then
+    ScheduleMainMenuRetry;
 end;
 
 procedure TSmartGitInsightWizard.RebuildMainMenuItems;
@@ -419,33 +878,75 @@ begin
     Exit;
 
   FMainMenu.Clear;
-  if AddTortoiseGitSubMenu(FMainMenu) then
-    AddSeparator;
 
-  AddAction('&Browse Repository', BrowseRepository);
-  AddAction('&Status', ShowStatus);
-  AddSeparator;
-  AddAction('&Commit', Commit);
-  AddAction('&Fetch', Fetch);
-  AddAction('&Pull', Pull);
-  AddAction('Pu&sh', Push);
-  AddAction('Stas&h', Stash);
-  AddSeparator;
-  AddAction('Checkout &Branch', CheckoutBranch);
-  AddAction('Create Bra&nch', CreateBranch);
-  AddAction('&Merge Branch', MergeBranch);
-  AddAction('&Rebase Branch', RebaseBranch);
-  AddAction('Cherry &Pick', CherryPick);
-  AddSeparator;
-  AddAction('&Apply Patch', ApplyPatch);
-  AddAction('&Format Patch', FormatPatch);
-  AddAction('Manage Rem&otes', ManageRemotes);
-  AddAction('Edit .&gitignore', EditGitIgnore);
-  AddSeparator;
-  AddAction('Git &Terminal', OpenTerminal);
+  AddTortoiseGitSubMenu(FMainMenu);
+  AddGitSubMenu(FMainMenu);
+
   AddSeparator;
   AddAction('Se&ttings', ShowSettings);
   AddAction('&About', ShowAbout);
+end;
+
+procedure TSmartGitInsightWizard.RemoveSmartGitInsightPopupItem(PopupMenu: TPopupMenu);
+var
+  Index: Integer;
+  Item: TMenuItem;
+begin
+  if PopupMenu = nil then
+    Exit;
+
+  for Index := PopupMenu.Items.Count - 1 downto 0 do
+  begin
+    Item := PopupMenu.Items[Index];
+    if SameText(NormalizedCaption(Item.Caption), SGIProductName) then
+    begin
+      PopupMenu.Items.Remove(Item);
+      Item.Free;
+    end;
+  end;
+end;
+
+procedure TSmartGitInsightWizard.RebuildEditorPopupMenu(PopupMenu: TPopupMenu);
+var
+  FoundSmartCodeInsight: Boolean;
+  Index: Integer;
+  InsertIndex: Integer;
+  Item: TMenuItem;
+  RootMenu: TMenuItem;
+begin
+  if PopupMenu = nil then
+    Exit;
+
+  RemoveSmartGitInsightPopupItem(PopupMenu);
+  if not SmartGitInsightSettings.EditorPopupEnabled then
+    Exit;
+
+  FoundSmartCodeInsight := False;
+  InsertIndex := PopupMenu.Items.Count;
+  for Index := 0 to PopupMenu.Items.Count - 1 do
+  begin
+    Item := PopupMenu.Items[Index];
+    if SameText(NormalizedCaption(Item.Caption), 'Smart CodeInsight') then
+    begin
+      InsertIndex := Index + 1;
+      FoundSmartCodeInsight := True;
+      Break;
+    end;
+  end;
+  if not FoundSmartCodeInsight then
+    InsertIndex := PopupMenu.Items.Count;
+  if InsertIndex > PopupMenu.Items.Count then
+    InsertIndex := PopupMenu.Items.Count;
+
+  RootMenu := TMenuItem.Create(PopupMenu);
+  RootMenu.Caption := SGIProductName;
+  AddTortoiseGitSubMenu(RootMenu);
+  AddGitSubMenu(RootMenu);
+
+  if RootMenu.Count = 0 then
+    RootMenu.Enabled := False;
+
+  PopupMenu.Items.Insert(InsertIndex, RootMenu);
 end;
 
 procedure TSmartGitInsightWizard.MainMenuPopup(Sender: TObject);
@@ -480,7 +981,8 @@ begin
   if Supports(BorlandIDEServices, IOTAProjectManager, ProjectManager) then
   begin
     FProjectMenuNotifier := TSmartGitInsightProjectMenuNotifier.Create;
-    FProjectMenuNotifierIndex := ProjectManager.AddMenuItemCreatorNotifier(FProjectMenuNotifier);
+    FProjectMenuNotifierIndex := ProjectManager.AddMenuCreatorNotifier(FProjectMenuNotifier);
+    FProjectMenuUsesLegacyNotifier := True;
   end;
 end;
 
@@ -489,7 +991,7 @@ var
   TortoiseMenu: TMenuItem;
 begin
   Result := False;
-  if not TSmartGitInsightTortoiseGit.IsEnabledAndAvailable then
+  if not SmartGitInsightSettings.TortoiseGitEnabled then
     Exit;
 
   TortoiseMenu := TMenuItem.Create(ParentMenu);
@@ -626,6 +1128,31 @@ begin
   TSmartGitInsightGit.RunGitForActiveRepository('status --ignored --short');
 end;
 
+procedure TSmartGitInsightWizard.DiffCurrentFile(Sender: TObject);
+begin
+  TSmartGitInsightGit.DiffActiveFile;
+end;
+
+procedure TSmartGitInsightWizard.FileHistory(Sender: TObject);
+begin
+  TSmartGitInsightGit.FileHistory;
+end;
+
+procedure TSmartGitInsightWizard.BlameCurrentFile(Sender: TObject);
+begin
+  TSmartGitInsightGit.BlameActiveFile;
+end;
+
+procedure TSmartGitInsightWizard.StageCurrentFile(Sender: TObject);
+begin
+  TSmartGitInsightGit.StageActiveFile;
+end;
+
+procedure TSmartGitInsightWizard.ResetCurrentFile(Sender: TObject);
+begin
+  TSmartGitInsightGit.ResetActiveFile;
+end;
+
 procedure TSmartGitInsightWizard.OpenTerminal(Sender: TObject);
 begin
   try
@@ -646,20 +1173,52 @@ begin
   ShowSmartGitInsightAboutDialog;
 end;
 
+procedure TSmartGitInsightWizard.UpdateEditorAction(Sender: TObject);
+begin
+  if Sender is TCustomAction then
+  begin
+    (Sender as TCustomAction).Visible := SmartGitInsightSettings.EditorPopupEnabled;
+    (Sender as TCustomAction).Enabled := SmartGitInsightSettings.EditorPopupEnabled;
+  end;
+end;
+
+procedure TSmartGitInsightWizard.UpdateEditorTortoiseGitAction(Sender: TObject);
+begin
+  if Sender is TCustomAction then
+  begin
+    (Sender as TCustomAction).Visible := SmartGitInsightSettings.EditorPopupEnabled and
+      SmartGitInsightSettings.TortoiseGitEnabled;
+    (Sender as TCustomAction).Enabled := SmartGitInsightSettings.EditorPopupEnabled and
+      SmartGitInsightSettings.TortoiseGitEnabled;
+  end;
+end;
+
 procedure TSmartGitInsightWizard.TortoiseGitCommand(Sender: TObject);
 var
   Command: TTortoiseGitCommand;
+  CommandOrdinal: Integer;
 begin
-  if Sender is TMenuItem then
-    Command := TTortoiseGitCommand((Sender as TMenuItem).Tag)
-  else if Sender is TAction then
-    Command := TTortoiseGitCommand((Sender as TAction).Tag)
-  else
-    Exit;
-  if Command in [tgDiff, tgPreviousDiff, tgBlame, tgResolve] then
-    TSmartGitInsightTortoiseGit.RunForActiveFile(Command)
-  else
-    TSmartGitInsightTortoiseGit.RunForActiveRepository(Command);
+  try
+    if Sender is TMenuItem then
+      CommandOrdinal := (Sender as TMenuItem).HelpContext
+    else if Sender is TAction then
+      CommandOrdinal := (Sender as TAction).HelpContext
+    else
+      Exit;
+
+    if (CommandOrdinal < Ord(Low(TTortoiseGitCommand))) or
+      (CommandOrdinal > Ord(High(TTortoiseGitCommand))) then
+      raise Exception.CreateFmt('Invalid TortoiseGit command id: %d', [CommandOrdinal]);
+
+    Command := TTortoiseGitCommand(CommandOrdinal);
+    if Command in [tgDiff, tgPreviousDiff, tgBlame, tgResolve] then
+      TSmartGitInsightTortoiseGit.RunForActiveFile(Command)
+    else
+      TSmartGitInsightTortoiseGit.RunForActiveRepository(Command);
+  except
+    on E: Exception do
+      MessageDlg(E.Message, mtError, [mbOK], 0);
+  end;
 end;
 
 end.

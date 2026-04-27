@@ -59,13 +59,12 @@ uses
   System.SysUtils,
   System.Win.Registry,
   Vcl.Dialogs,
-  Winapi.ShellAPI,
   Winapi.Windows,
   SmartGitInsight.Settings;
 
 function Quote(const Value: string): string;
 begin
-  Result := '"' + StringReplace(Value, '"', '\"', [rfReplaceAll]) + '"';
+  Result := '"' + StringReplace(Value, '"', '""', [rfReplaceAll]) + '"';
 end;
 
 function ReadRegistryString(const Root: HKEY; const KeyName, ValueName: string): string;
@@ -165,6 +164,11 @@ end;
 function CommandNeedsActiveFile(ACommand: TTortoiseGitCommand): Boolean;
 begin
   Result := ACommand in [tgDiff, tgPreviousDiff, tgBlame, tgResolve];
+end;
+
+function CommandAllowsNoTarget(ACommand: TTortoiseGitCommand): Boolean;
+begin
+  Result := ACommand in [tgSettings, tgHelp, tgAbout];
 end;
 
 function ExtraArguments(ACommand: TTortoiseGitCommand): string;
@@ -308,11 +312,14 @@ end;
 
 class procedure TSmartGitInsightTortoiseGit.Run(ACommand: TTortoiseGitCommand; const Repository: TSmartGitInsightRepository);
 var
+  CommandLine: string;
   DirectoryName: string;
   ExecutableName: string;
   Parameters: string;
-  ShellResult: HINST;
+  ProcessInfo: TProcessInformation;
+  StartupInfo: TStartupInfo;
   TargetPath: string;
+  WinError: DWORD;
 begin
   ExecutableName := EffectiveExecutable;
   if ExecutableName = '' then
@@ -331,6 +338,13 @@ begin
   else
     TargetPath := '';
 
+  if (TargetPath = '') and not CommandAllowsNoTarget(ACommand) then
+  begin
+    MessageDlg('No active Git repository or project file was found for the TortoiseGit command.',
+      mtInformation, [mbOK], 0);
+    Exit;
+  end;
+
   Parameters := '/command:' + CommandName(ACommand);
   if TargetPath <> '' then
     Parameters := Parameters + ' /path:' + Quote(TargetPath);
@@ -345,10 +359,26 @@ begin
       DirectoryName := ExtractFilePath(TargetPath);
   end;
 
-  ShellResult := ShellExecute(0, 'open', PChar(ExecutableName), PChar(Parameters), PChar(DirectoryName), SW_SHOWNORMAL);
-  if ShellResult <= 32 then
-    MessageDlg(Format('Unable to launch TortoiseGit command "%s". ShellExecute returned %d.' + sLineBreak + sLineBreak +
-      '%s %s', [CommandName(ACommand), ShellResult, ExecutableName, Parameters]), mtError, [mbOK], 0);
+  ZeroMemory(@StartupInfo, SizeOf(StartupInfo));
+  ZeroMemory(@ProcessInfo, SizeOf(ProcessInfo));
+  StartupInfo.cb := SizeOf(StartupInfo);
+  StartupInfo.dwFlags := STARTF_USESHOWWINDOW;
+  StartupInfo.wShowWindow := SW_SHOWNORMAL;
+
+  CommandLine := Quote(ExecutableName) + ' ' + Parameters;
+  if not CreateProcess(nil, PChar(CommandLine), nil, nil, False, 0, nil, PChar(DirectoryName),
+    StartupInfo, ProcessInfo) then
+  begin
+    WinError := GetLastError;
+    MessageDlg(Format('Unable to launch TortoiseGit command "%s". Windows error %d: %s' + sLineBreak + sLineBreak +
+      '%s', [CommandName(ACommand), WinError, SysErrorMessage(WinError), CommandLine]),
+      mtError, [mbOK], 0);
+  end
+  else
+  begin
+    CloseHandle(ProcessInfo.hThread);
+    CloseHandle(ProcessInfo.hProcess);
+  end;
 end;
 
 class procedure TSmartGitInsightTortoiseGit.RunForActiveRepository(ACommand: TTortoiseGitCommand);

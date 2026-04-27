@@ -9,6 +9,7 @@ type
     FBackgroundFetchEnabled: Boolean;
     FBackgroundFetchIntervalSeconds: Integer;
     FDefaultCloneDirectory: string;
+    FEditorPopupEnabled: Boolean;
     FGitBashExecutable: string;
     FGitExecutable: string;
     FShowBranchInMenu: Boolean;
@@ -24,6 +25,7 @@ type
     property GitExecutable: string read FGitExecutable write FGitExecutable;
     property GitBashExecutable: string read FGitBashExecutable write FGitBashExecutable;
     property DefaultCloneDirectory: string read FDefaultCloneDirectory write FDefaultCloneDirectory;
+    property EditorPopupEnabled: Boolean read FEditorPopupEnabled write FEditorPopupEnabled;
     property ShowBranchInMenu: Boolean read FShowBranchInMenu write FShowBranchInMenu;
     property ShowConfirmationForDestructiveActions: Boolean read FShowConfirmationForDestructiveActions write FShowConfirmationForDestructiveActions;
     property TortoiseGitEnabled: Boolean read FTortoiseGitEnabled write FTortoiseGitEnabled;
@@ -62,6 +64,7 @@ begin
   FGitExecutable := 'git.exe';
   FGitBashExecutable := '';
   FDefaultCloneDirectory := TPath.Combine(TPath.GetDocumentsPath, 'Git');
+  FEditorPopupEnabled := True;
   FShowBranchInMenu := True;
   FShowConfirmationForDestructiveActions := True;
   FTortoiseGitEnabled := True;
@@ -89,6 +92,7 @@ begin
     FGitExecutable := Ini.ReadString('Git', 'GitExecutable', FGitExecutable);
     FGitBashExecutable := Ini.ReadString('Git', 'GitBashExecutable', FGitBashExecutable);
     FDefaultCloneDirectory := Ini.ReadString('Git', 'DefaultCloneDirectory', FDefaultCloneDirectory);
+    FEditorPopupEnabled := Ini.ReadBool('IDE', 'EditorPopupEnabled', FEditorPopupEnabled);
     FShowBranchInMenu := Ini.ReadBool('IDE', 'ShowBranchInMenu', FShowBranchInMenu);
     FShowConfirmationForDestructiveActions := Ini.ReadBool('IDE', 'ShowConfirmationForDestructiveActions', FShowConfirmationForDestructiveActions);
     FTortoiseGitEnabled := Ini.ReadBool('TortoiseGit', 'Enabled', FTortoiseGitEnabled);
@@ -110,6 +114,7 @@ begin
     Ini.WriteString('Git', 'GitExecutable', FGitExecutable);
     Ini.WriteString('Git', 'GitBashExecutable', FGitBashExecutable);
     Ini.WriteString('Git', 'DefaultCloneDirectory', FDefaultCloneDirectory);
+    Ini.WriteBool('IDE', 'EditorPopupEnabled', FEditorPopupEnabled);
     Ini.WriteBool('IDE', 'ShowBranchInMenu', FShowBranchInMenu);
     Ini.WriteBool('IDE', 'ShowConfirmationForDestructiveActions', FShowConfirmationForDestructiveActions);
     Ini.WriteBool('TortoiseGit', 'Enabled', FTortoiseGitEnabled);

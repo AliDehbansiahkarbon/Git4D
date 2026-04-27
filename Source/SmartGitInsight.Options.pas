@@ -18,6 +18,7 @@ type
     FBashEdit: TEdit;
     FCloneEdit: TEdit;
     FConfirmCheck: TCheckBox;
+    FEditorPopupCheck: TCheckBox;
     FGitEdit: TEdit;
     FShowBranchCheck: TCheckBox;
     FTortoiseGitCheck: TCheckBox;
@@ -112,6 +113,7 @@ begin
   AddLabeledEdit('Git executable', Top, FGitEdit);
   AddLabeledEdit('Git Bash executable', Top, FBashEdit);
   AddLabeledEdit('Default clone folder', Top, FCloneEdit);
+  AddCheckBox('Enable editor popup menu integration', Top, FEditorPopupCheck);
   AddCheckBox('Show current branch in Smart GitInsight menus', Top, FShowBranchCheck);
   AddCheckBox('Confirm destructive commands', Top, FConfirmCheck);
   AddCheckBox('Enable background fetch', Top, FBackgroundFetchCheck);
@@ -157,6 +159,7 @@ begin
   FGitEdit.Text := SmartGitInsightSettings.GitExecutable;
   FBashEdit.Text := SmartGitInsightSettings.GitBashExecutable;
   FCloneEdit.Text := SmartGitInsightSettings.DefaultCloneDirectory;
+  FEditorPopupCheck.Checked := SmartGitInsightSettings.EditorPopupEnabled;
   FShowBranchCheck.Checked := SmartGitInsightSettings.ShowBranchInMenu;
   FConfirmCheck.Checked := SmartGitInsightSettings.ShowConfirmationForDestructiveActions;
   FBackgroundFetchCheck.Checked := SmartGitInsightSettings.BackgroundFetchEnabled;
@@ -172,6 +175,7 @@ begin
   SmartGitInsightSettings.GitExecutable := FGitEdit.Text;
   SmartGitInsightSettings.GitBashExecutable := FBashEdit.Text;
   SmartGitInsightSettings.DefaultCloneDirectory := FCloneEdit.Text;
+  SmartGitInsightSettings.EditorPopupEnabled := FEditorPopupCheck.Checked;
   SmartGitInsightSettings.ShowBranchInMenu := FShowBranchCheck.Checked;
   SmartGitInsightSettings.ShowConfirmationForDestructiveActions := FConfirmCheck.Checked;
   SmartGitInsightSettings.BackgroundFetchEnabled := FBackgroundFetchCheck.Checked;
