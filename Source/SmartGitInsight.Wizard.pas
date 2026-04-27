@@ -18,12 +18,14 @@ type
     FOldOnPopup: TNotifyEvent;
     FPopupMenu: TPopupMenu;
     FWizard: TSmartGitInsightWizard;
+    function IsHooked: Boolean;
     procedure PopupOpening(Sender: TObject);
   protected
     procedure Notification(AComponent: TComponent; Operation: TOperation); override;
   public
     constructor Create(AWizard: TSmartGitInsightWizard; APopupMenu: TPopupMenu); reintroduce;
     destructor Destroy; override;
+    procedure EnsureHooked;
     property PopupMenu: TPopupMenu read FPopupMenu;
   end;
 
@@ -118,6 +120,7 @@ type
     procedure InstallEditorLocalMenu;
     procedure InstallMainMenu;
     procedure InstallProjectManagerMenu;
+    function IsSmartGitInsightPopupMenu(PopupMenu: TPopupMenu): Boolean;
     procedure MainMenuRetryTimer(Sender: TObject);
     procedure UninstallEditorLocalMenu;
     procedure MainMenuPopup(Sender: TObject);
@@ -182,6 +185,8 @@ uses
 const
   SGILegacyEditorActionListCategory = 'SmartGitInsight';
   SGILegacyEditorActionListCategory2 = 'SmartGitInsight.EditorLocalMenu';
+  SGIEditorPopupMenuName = 'SmartGitInsightEditorPopupMenu';
+  SGIMainMenuName = 'SmartGitInsightToolsMenu';
   SGIMainMenuRetryLimit = 20;
 
 function NormalizedCaption(const Caption: string): string;
@@ -194,18 +199,33 @@ begin
   inherited Create(nil);
   FWizard := AWizard;
   FPopupMenu := APopupMenu;
+  EnsureHooked;
+end;
+
+procedure TSmartGitInsightEditorPopupHook.EnsureHooked;
+begin
   if FPopupMenu <> nil then
   begin
     FPopupMenu.FreeNotification(Self);
-    FOldOnPopup := FPopupMenu.OnPopup;
-    FPopupMenu.OnPopup := PopupOpening;
+    if not IsHooked then
+    begin
+      FOldOnPopup := FPopupMenu.OnPopup;
+      FPopupMenu.OnPopup := PopupOpening;
+    end;
   end;
 end;
 
 destructor TSmartGitInsightEditorPopupHook.Destroy;
 begin
   if FPopupMenu <> nil then
-    FPopupMenu.OnPopup := FOldOnPopup;
+  begin
+    try
+      if IsHooked then
+        FPopupMenu.OnPopup := FOldOnPopup;
+      FPopupMenu.RemoveFreeNotification(Self);
+    except
+    end;
+  end;
   inherited Destroy;
 end;
 
@@ -216,8 +236,26 @@ begin
     FPopupMenu := nil;
 end;
 
+function TSmartGitInsightEditorPopupHook.IsHooked: Boolean;
+var
+  CurrentMethod: TMethod;
+  HookEvent: TNotifyEvent;
+  HookMethod: TMethod;
+begin
+  Result := False;
+  if FPopupMenu = nil then
+    Exit;
+
+  CurrentMethod := TMethod(FPopupMenu.OnPopup);
+  HookEvent := PopupOpening;
+  HookMethod := TMethod(HookEvent);
+  Result := (CurrentMethod.Code = HookMethod.Code) and (CurrentMethod.Data = HookMethod.Data);
+end;
+
 procedure TSmartGitInsightEditorPopupHook.PopupOpening(Sender: TObject);
 begin
+  if (FWizard <> nil) and (Sender is TPopupMenu) then
+    FWizard.RemoveSmartGitInsightPopupItem(Sender as TPopupMenu);
   if Assigned(FOldOnPopup) then
     FOldOnPopup(Sender);
   if (FWizard <> nil) and (Sender is TPopupMenu) then
@@ -675,7 +713,10 @@ begin
       FEditorPopupHooks.Delete(Index);
     end
     else if Hook.PopupMenu = PopupMenu then
+    begin
+      Hook.EnsureHooked;
       Exit;
+    end;
   end;
 
   FEditorPopupHooks.Add(TSmartGitInsightEditorPopupHook.Create(Self, PopupMenu));
@@ -829,15 +870,12 @@ begin
     FMainMenuRetryTimer.Enabled := False;
 
   FMainMenu := TMenuItem.Create(nil);
+  FMainMenu.Name := SGIMainMenuName;
   FMainMenu.Caption := '&Smart GitInsight';
   FMainMenu.OnClick := MainMenuPopup;
 
   RebuildMainMenuItems;
-  try
-    (BorlandIDEServices as INTAServices).AddActionMenu('ToolsMenu', nil, FMainMenu, True, True);
-  except
-    ToolsMenu.Add(FMainMenu);
-  end;
+  ToolsMenu.Add(FMainMenu);
   FMainMenuInstalled := True;
 end;
 
@@ -887,6 +925,36 @@ begin
   AddAction('&About', ShowAbout);
 end;
 
+function TSmartGitInsightWizard.IsSmartGitInsightPopupMenu(PopupMenu: TPopupMenu): Boolean;
+var
+  CaptionText: string;
+  Index: Integer;
+begin
+  Result := False;
+  if PopupMenu = nil then
+    Exit;
+
+  if SameText(PopupMenu.Name, 'EditorLocalMenu') then
+  begin
+    Result := True;
+    Exit;
+  end;
+
+  for Index := 0 to PopupMenu.Items.Count - 1 do
+  begin
+    CaptionText := NormalizedCaption(PopupMenu.Items[Index].Caption);
+    if SameText(CaptionText, 'Smart CodeInsight') or
+      SameText(CaptionText, 'Editor Options') or
+      SameText(CaptionText, 'Code Preview Window') or
+      SameText(CaptionText, 'Open File at Cursor') or
+      SameText(CaptionText, 'Close All Other Pages') then
+    begin
+      Result := True;
+      Exit;
+    end;
+  end;
+end;
+
 procedure TSmartGitInsightWizard.RemoveSmartGitInsightPopupItem(PopupMenu: TPopupMenu);
 var
   Index: Integer;
@@ -898,7 +966,8 @@ begin
   for Index := PopupMenu.Items.Count - 1 downto 0 do
   begin
     Item := PopupMenu.Items[Index];
-    if SameText(NormalizedCaption(Item.Caption), SGIProductName) then
+    if SameText(Item.Name, SGIEditorPopupMenuName) or
+      SameText(NormalizedCaption(Item.Caption), SGIProductName) then
     begin
       PopupMenu.Items.Remove(Item);
       Item.Free;
@@ -918,6 +987,8 @@ begin
     Exit;
 
   RemoveSmartGitInsightPopupItem(PopupMenu);
+  if not IsSmartGitInsightPopupMenu(PopupMenu) then
+    Exit;
   if not SmartGitInsightSettings.EditorPopupEnabled then
     Exit;
 
@@ -939,6 +1010,7 @@ begin
     InsertIndex := PopupMenu.Items.Count;
 
   RootMenu := TMenuItem.Create(PopupMenu);
+  RootMenu.Name := SGIEditorPopupMenuName;
   RootMenu.Caption := SGIProductName;
   AddTortoiseGitSubMenu(RootMenu);
   AddGitSubMenu(RootMenu);
