@@ -25,6 +25,8 @@ type
     FShowBranchCheck: TCheckBox;
     FTortoiseGitCheck: TCheckBox;
     FTortoiseGitEdit: TEdit;
+    FTortoiseSvnCheck: TCheckBox;
+    FTortoiseSvnEdit: TEdit;
     procedure AddLabeledEdit(const ACaption: string; var ATop: Integer; out AEdit: TEdit);
     procedure AddCheckBox(const ACaption: string; var ATop: Integer; out ACheckBox: TCheckBox);
   public
@@ -61,7 +63,8 @@ uses
   SmartGitInsight.Constants,
   SmartGitInsight.GitExtensions,
   SmartGitInsight.Settings,
-  SmartGitInsight.TortoiseGit;
+  SmartGitInsight.TortoiseGit,
+  SmartGitInsight.TortoiseSVN;
 
 var
   GAddInOptions: INTAAddInOptions;
@@ -125,6 +128,9 @@ begin
   AddCheckBox('Enable TortoiseGit submenu when installed', Top, FTortoiseGitCheck);
   AddLabeledEdit('TortoiseGitProc.exe', Top, FTortoiseGitEdit);
   Inc(Top, 10);
+  AddCheckBox('Enable TortoiseSVN submenu when installed', Top, FTortoiseSvnCheck);
+  AddLabeledEdit('TortoiseProc.exe', Top, FTortoiseSvnEdit);
+  Inc(Top, 10);
   AddCheckBox('Enable Git Extensions submenu when installed', Top, FGitExtensionsCheck);
   AddLabeledEdit('GitExtensions.exe', Top, FGitExtensionsEdit);
 
@@ -174,6 +180,10 @@ begin
   FTortoiseGitEdit.Text := SmartGitInsightSettings.TortoiseGitExecutable;
   if FTortoiseGitEdit.Text = '' then
     FTortoiseGitEdit.Text := TSmartGitInsightTortoiseGit.DetectExecutable;
+  FTortoiseSvnCheck.Checked := SmartGitInsightSettings.TortoiseSvnEnabled;
+  FTortoiseSvnEdit.Text := SmartGitInsightSettings.TortoiseSvnExecutable;
+  if FTortoiseSvnEdit.Text = '' then
+    FTortoiseSvnEdit.Text := TSmartGitInsightTortoiseSVN.DetectExecutable;
   FGitExtensionsCheck.Checked := SmartGitInsightSettings.GitExtensionsEnabled;
   FGitExtensionsEdit.Text := SmartGitInsightSettings.GitExtensionsExecutable;
   if FGitExtensionsEdit.Text = '' then
@@ -192,6 +202,8 @@ begin
   SmartGitInsightSettings.AutoCloseConsoleOnSuccess := FAutoCloseCheck.Checked;
   SmartGitInsightSettings.TortoiseGitEnabled := FTortoiseGitCheck.Checked;
   SmartGitInsightSettings.TortoiseGitExecutable := FTortoiseGitEdit.Text;
+  SmartGitInsightSettings.TortoiseSvnEnabled := FTortoiseSvnCheck.Checked;
+  SmartGitInsightSettings.TortoiseSvnExecutable := FTortoiseSvnEdit.Text;
   SmartGitInsightSettings.GitExtensionsEnabled := FGitExtensionsCheck.Checked;
   SmartGitInsightSettings.GitExtensionsExecutable := FGitExtensionsEdit.Text;
   SmartGitInsightSettings.Save;

@@ -38,6 +38,7 @@ contains
   SmartGitInsight.Git in '..\Source\SmartGitInsight.Git.pas',
   SmartGitInsight.GitExtensions in '..\Source\SmartGitInsight.GitExtensions.pas',
   SmartGitInsight.TortoiseGit in '..\Source\SmartGitInsight.TortoiseGit.pas',
+  SmartGitInsight.TortoiseSVN in '..\Source\SmartGitInsight.TortoiseSVN.pas',
   SmartGitInsight.Dialogs in '..\Source\SmartGitInsight.Dialogs.pas',
   SmartGitInsight.Options in '..\Source\SmartGitInsight.Options.pas',
   SmartGitInsight.Wizard in '..\Source\SmartGitInsight.Wizard.pas';

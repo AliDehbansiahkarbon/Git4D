@@ -18,6 +18,8 @@ type
     FShowConfirmationForDestructiveActions: Boolean;
     FTortoiseGitEnabled: Boolean;
     FTortoiseGitExecutable: string;
+    FTortoiseSvnEnabled: Boolean;
+    FTortoiseSvnExecutable: string;
     function GetSettingsFileName: string;
   public
     constructor Create;
@@ -34,6 +36,8 @@ type
     property ShowConfirmationForDestructiveActions: Boolean read FShowConfirmationForDestructiveActions write FShowConfirmationForDestructiveActions;
     property TortoiseGitEnabled: Boolean read FTortoiseGitEnabled write FTortoiseGitEnabled;
     property TortoiseGitExecutable: string read FTortoiseGitExecutable write FTortoiseGitExecutable;
+    property TortoiseSvnEnabled: Boolean read FTortoiseSvnEnabled write FTortoiseSvnEnabled;
+    property TortoiseSvnExecutable: string read FTortoiseSvnExecutable write FTortoiseSvnExecutable;
     property BackgroundFetchEnabled: Boolean read FBackgroundFetchEnabled write FBackgroundFetchEnabled;
     property BackgroundFetchIntervalSeconds: Integer read FBackgroundFetchIntervalSeconds write FBackgroundFetchIntervalSeconds;
     property AutoCloseConsoleOnSuccess: Boolean read FAutoCloseConsoleOnSuccess write FAutoCloseConsoleOnSuccess;
@@ -75,6 +79,8 @@ begin
   FGitExtensionsExecutable := '';
   FTortoiseGitEnabled := False;
   FTortoiseGitExecutable := '';
+  FTortoiseSvnEnabled := False;
+  FTortoiseSvnExecutable := '';
   FBackgroundFetchEnabled := False;
   FBackgroundFetchIntervalSeconds := 300;
   FAutoCloseConsoleOnSuccess := False;
@@ -105,6 +111,8 @@ begin
     FGitExtensionsExecutable := Ini.ReadString('GitExtensions', 'Executable', FGitExtensionsExecutable);
     FTortoiseGitEnabled := Ini.ReadBool('TortoiseGit', 'Enabled', FTortoiseGitEnabled);
     FTortoiseGitExecutable := Ini.ReadString('TortoiseGit', 'Executable', FTortoiseGitExecutable);
+    FTortoiseSvnEnabled := Ini.ReadBool('TortoiseSVN', 'Enabled', FTortoiseSvnEnabled);
+    FTortoiseSvnExecutable := Ini.ReadString('TortoiseSVN', 'Executable', FTortoiseSvnExecutable);
     FBackgroundFetchEnabled := Ini.ReadBool('BackgroundFetch', 'Enabled', FBackgroundFetchEnabled);
     FBackgroundFetchIntervalSeconds := Ini.ReadInteger('BackgroundFetch', 'IntervalSeconds', FBackgroundFetchIntervalSeconds);
     FAutoCloseConsoleOnSuccess := Ini.ReadBool('Process', 'AutoCloseConsoleOnSuccess', FAutoCloseConsoleOnSuccess);
@@ -129,6 +137,8 @@ begin
     Ini.WriteString('GitExtensions', 'Executable', FGitExtensionsExecutable);
     Ini.WriteBool('TortoiseGit', 'Enabled', FTortoiseGitEnabled);
     Ini.WriteString('TortoiseGit', 'Executable', FTortoiseGitExecutable);
+    Ini.WriteBool('TortoiseSVN', 'Enabled', FTortoiseSvnEnabled);
+    Ini.WriteString('TortoiseSVN', 'Executable', FTortoiseSvnExecutable);
     Ini.WriteBool('BackgroundFetch', 'Enabled', FBackgroundFetchEnabled);
     Ini.WriteInteger('BackgroundFetch', 'IntervalSeconds', FBackgroundFetchIntervalSeconds);
     Ini.WriteBool('Process', 'AutoCloseConsoleOnSuccess', FAutoCloseConsoleOnSuccess);

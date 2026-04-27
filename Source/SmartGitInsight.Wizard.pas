@@ -9,7 +9,8 @@ uses
   Vcl.Menus,
   ToolsAPI,
   SmartGitInsight.GitExtensions,
-  SmartGitInsight.TortoiseGit;
+  SmartGitInsight.TortoiseGit,
+  SmartGitInsight.TortoiseSVN;
 
 type
   TSmartGitInsightWizard = class;
@@ -83,9 +84,11 @@ type
     procedure AddProjectGitExtensionsCommand(Menu: TMenuItem; Command: TGitExtensionsCommand);
     procedure AddProjectSeparator(Menu: TMenuItem);
     procedure AddProjectTortoiseGitCommand(Menu: TMenuItem; Command: TTortoiseGitCommand);
+    procedure AddProjectTortoiseSvnCommand(Menu: TMenuItem; Command: TTortoiseSvnCommand);
     procedure ProjectCommandClick(Sender: TObject);
     procedure ProjectGitExtensionsClick(Sender: TObject);
     procedure ProjectTortoiseGitClick(Sender: TObject);
+    procedure ProjectTortoiseSvnClick(Sender: TObject);
   public
     procedure AddMenu(const Project: IOTAProject; const IdentList: TStrings;
       const ProjectManagerMenuList: IInterfaceList; IsMultiSelect: Boolean); overload;
@@ -113,6 +116,8 @@ type
     function AddGitSubMenu(ParentMenu: TMenuItem): TMenuItem;
     function AddTortoiseGitSubMenu(ParentMenu: TMenuItem): Boolean;
     procedure AddTortoiseGitCommand(Menu: TMenuItem; Command: TTortoiseGitCommand);
+    procedure AddTortoiseSvnCommand(Menu: TMenuItem; Command: TTortoiseSvnCommand);
+    function AddTortoiseSvnSubMenu(ParentMenu: TMenuItem): Boolean;
     procedure AddSeparator;
     procedure AddSubMenu(const Caption: string; const Items: array of TMenuItem);
     function CreateActionItem(const Caption: string; const Handler: TNotifyEvent; const Shortcut: TShortCut = 0): TMenuItem;
@@ -157,6 +162,7 @@ type
     procedure ShowSettings(Sender: TObject);
     procedure ShowAbout(Sender: TObject);
     procedure GitExtensionsCommand(Sender: TObject);
+    procedure TortoiseSvnCommand(Sender: TObject);
     procedure ScheduleMainMenuRetry;
     procedure UpdateEditorAction(Sender: TObject);
     procedure UpdateEditorTortoiseGitAction(Sender: TObject);
@@ -461,16 +467,46 @@ begin
   Menu.Add(Item);
 end;
 
+procedure TSmartGitInsightProjectMenuNotifier.AddProjectTortoiseSvnCommand(Menu: TMenuItem;
+  Command: TTortoiseSvnCommand);
+var
+  Item: TMenuItem;
+begin
+  Item := TMenuItem.Create(Menu);
+  Item.Caption := TSmartGitInsightTortoiseSVN.CommandDisplayName(Command);
+  Item.Tag := Ord(Command);
+  Item.HelpContext := Ord(Command);
+  Item.OnClick := ProjectTortoiseSvnClick;
+  Menu.Add(Item);
+end;
+
 function TSmartGitInsightProjectMenuNotifier.AddMenu(const Ident: string): TMenuItem;
 var
   ExternalMenuAdded: Boolean;
   GitExtensionsMenu: TMenuItem;
   TortoiseMenu: TMenuItem;
+  TortoiseSvnMenu: TMenuItem;
 begin
   Result := TMenuItem.Create(nil);
   Result.Caption := SGIProductName;
 
   ExternalMenuAdded := False;
+  if SmartGitInsightSettings.TortoiseSvnEnabled then
+  begin
+    TortoiseSvnMenu := TMenuItem.Create(Result);
+    TortoiseSvnMenu.Caption := 'TortoiseSVN';
+    AddProjectTortoiseSvnCommand(TortoiseSvnMenu, svnLog);
+    AddProjectTortoiseSvnCommand(TortoiseSvnMenu, svnDiff);
+    AddProjectTortoiseSvnCommand(TortoiseSvnMenu, svnBlame);
+    AddProjectTortoiseSvnCommand(TortoiseSvnMenu, svnCommit);
+    AddProjectTortoiseSvnCommand(TortoiseSvnMenu, svnUpdate);
+    AddProjectTortoiseSvnCommand(TortoiseSvnMenu, svnCheckForModifications);
+    AddProjectTortoiseSvnCommand(TortoiseSvnMenu, svnRepoBrowser);
+    AddProjectTortoiseSvnCommand(TortoiseSvnMenu, svnSettings);
+    Result.Add(TortoiseSvnMenu);
+    ExternalMenuAdded := True;
+  end;
+
   if SmartGitInsightSettings.TortoiseGitEnabled then
   begin
     TortoiseMenu := TMenuItem.Create(Result);
@@ -590,6 +626,31 @@ begin
       TSmartGitInsightTortoiseGit.RunForActiveFile(Command)
     else
       TSmartGitInsightTortoiseGit.RunForActiveRepository(Command);
+  except
+    on E: Exception do
+      MessageDlg(E.Message, mtError, [mbOK], 0);
+  end;
+end;
+
+procedure TSmartGitInsightProjectMenuNotifier.ProjectTortoiseSvnClick(Sender: TObject);
+var
+  Command: TTortoiseSvnCommand;
+  CommandOrdinal: Integer;
+begin
+  try
+    if not (Sender is TMenuItem) then
+      Exit;
+
+    CommandOrdinal := (Sender as TMenuItem).HelpContext;
+    if (CommandOrdinal < Ord(Low(TTortoiseSvnCommand))) or
+      (CommandOrdinal > Ord(High(TTortoiseSvnCommand))) then
+      raise Exception.CreateFmt('Invalid TortoiseSVN command id: %d', [CommandOrdinal]);
+
+    Command := TTortoiseSvnCommand(CommandOrdinal);
+    if Command in [svnDiff, svnPreviousDiff, svnBlame, svnResolved] then
+      TSmartGitInsightTortoiseSVN.RunForActiveFile(Command)
+    else
+      TSmartGitInsightTortoiseSVN.RunForActiveRepository(Command);
   except
     on E: Exception do
       MessageDlg(E.Message, mtError, [mbOK], 0);
@@ -805,6 +866,16 @@ begin
   Menu.Add(Item);
 end;
 
+procedure TSmartGitInsightWizard.AddTortoiseSvnCommand(Menu: TMenuItem; Command: TTortoiseSvnCommand);
+var
+  Item: TMenuItem;
+begin
+  Item := CreateActionItem(TSmartGitInsightTortoiseSVN.CommandDisplayName(Command), TortoiseSvnCommand);
+  Item.Tag := Ord(Command);
+  Item.HelpContext := Ord(Command);
+  Menu.Add(Item);
+end;
+
 procedure TSmartGitInsightWizard.AddGitExtensionsCommand(Menu: TMenuItem; Command: TGitExtensionsCommand);
 var
   Item: TMenuItem;
@@ -835,6 +906,46 @@ end;
 procedure TSmartGitInsightWizard.AddGitCommand(Menu: TMenuItem; const Caption: string; const Handler: TNotifyEvent);
 begin
   Menu.Add(CreateActionItem(Caption, Handler));
+end;
+
+function TSmartGitInsightWizard.AddTortoiseSvnSubMenu(ParentMenu: TMenuItem): Boolean;
+var
+  TortoiseSvnMenu: TMenuItem;
+begin
+  Result := False;
+  if not SmartGitInsightSettings.TortoiseSvnEnabled then
+    Exit;
+
+  TortoiseSvnMenu := TMenuItem.Create(ParentMenu);
+  TortoiseSvnMenu.Caption := 'TortoiseSVN';
+
+  AddTortoiseSvnCommand(TortoiseSvnMenu, svnUpdate);
+  AddTortoiseSvnCommand(TortoiseSvnMenu, svnCommit);
+  AddTortoiseSvnCommand(TortoiseSvnMenu, svnDiff);
+  AddTortoiseSvnCommand(TortoiseSvnMenu, svnPreviousDiff);
+  AddTortoiseSvnCommand(TortoiseSvnMenu, svnLog);
+  AddTortoiseSvnCommand(TortoiseSvnMenu, svnBlame);
+  AddTortoiseSvnCommand(TortoiseSvnMenu, svnCheckForModifications);
+  AddTortoiseSvnCommand(TortoiseSvnMenu, svnRepoBrowser);
+  AddTortoiseSvnCommand(TortoiseSvnMenu, svnRevisionGraph);
+  TortoiseSvnMenu.Add(CreateSeparator);
+  AddTortoiseSvnCommand(TortoiseSvnMenu, svnAdd);
+  AddTortoiseSvnCommand(TortoiseSvnMenu, svnRevert);
+  AddTortoiseSvnCommand(TortoiseSvnMenu, svnCleanup);
+  AddTortoiseSvnCommand(TortoiseSvnMenu, svnResolved);
+  TortoiseSvnMenu.Add(CreateSeparator);
+  AddTortoiseSvnCommand(TortoiseSvnMenu, svnSwitch);
+  AddTortoiseSvnCommand(TortoiseSvnMenu, svnMerge);
+  AddTortoiseSvnCommand(TortoiseSvnMenu, svnBranchTag);
+  AddTortoiseSvnCommand(TortoiseSvnMenu, svnCheckout);
+  AddTortoiseSvnCommand(TortoiseSvnMenu, svnExport);
+  TortoiseSvnMenu.Add(CreateSeparator);
+  AddTortoiseSvnCommand(TortoiseSvnMenu, svnSettings);
+  AddTortoiseSvnCommand(TortoiseSvnMenu, svnHelp);
+  AddTortoiseSvnCommand(TortoiseSvnMenu, svnAbout);
+
+  ParentMenu.Add(TortoiseSvnMenu);
+  Result := True;
 end;
 
 function TSmartGitInsightWizard.AddGitExtensionsSubMenu(ParentMenu: TMenuItem): Boolean;
@@ -1056,7 +1167,9 @@ begin
 
   FMainMenu.Clear;
 
-  ExternalMenuAdded := AddTortoiseGitSubMenu(FMainMenu);
+  ExternalMenuAdded := AddTortoiseSvnSubMenu(FMainMenu);
+  if AddTortoiseGitSubMenu(FMainMenu) then
+    ExternalMenuAdded := True;
   if AddGitExtensionsSubMenu(FMainMenu) then
     ExternalMenuAdded := True;
   if ExternalMenuAdded then
@@ -1156,7 +1269,9 @@ begin
   RootMenu := TMenuItem.Create(PopupMenu);
   RootMenu.Name := SGIEditorPopupMenuName;
   RootMenu.Caption := SGIProductName;
-  ExternalMenuAdded := AddTortoiseGitSubMenu(RootMenu);
+  ExternalMenuAdded := AddTortoiseSvnSubMenu(RootMenu);
+  if AddTortoiseGitSubMenu(RootMenu) then
+    ExternalMenuAdded := True;
   if AddGitExtensionsSubMenu(RootMenu) then
     ExternalMenuAdded := True;
   if ExternalMenuAdded then
@@ -1415,6 +1530,34 @@ begin
       TSmartGitInsightGitExtensions.RunForActiveFile(Command)
     else
       TSmartGitInsightGitExtensions.RunForActiveRepository(Command);
+  except
+    on E: Exception do
+      MessageDlg(E.Message, mtError, [mbOK], 0);
+  end;
+end;
+
+procedure TSmartGitInsightWizard.TortoiseSvnCommand(Sender: TObject);
+var
+  Command: TTortoiseSvnCommand;
+  CommandOrdinal: Integer;
+begin
+  try
+    if Sender is TMenuItem then
+      CommandOrdinal := (Sender as TMenuItem).HelpContext
+    else if Sender is TAction then
+      CommandOrdinal := (Sender as TAction).HelpContext
+    else
+      Exit;
+
+    if (CommandOrdinal < Ord(Low(TTortoiseSvnCommand))) or
+      (CommandOrdinal > Ord(High(TTortoiseSvnCommand))) then
+      raise Exception.CreateFmt('Invalid TortoiseSVN command id: %d', [CommandOrdinal]);
+
+    Command := TTortoiseSvnCommand(CommandOrdinal);
+    if Command in [svnDiff, svnPreviousDiff, svnBlame, svnResolved] then
+      TSmartGitInsightTortoiseSVN.RunForActiveFile(Command)
+    else
+      TSmartGitInsightTortoiseSVN.RunForActiveRepository(Command);
   except
     on E: Exception do
       MessageDlg(E.Message, mtError, [mbOK], 0);
