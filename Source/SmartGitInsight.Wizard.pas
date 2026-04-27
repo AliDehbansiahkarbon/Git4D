@@ -8,6 +8,7 @@ uses
   Vcl.ExtCtrls,
   Vcl.Menus,
   ToolsAPI,
+  SmartGitInsight.GitExtensions,
   SmartGitInsight.TortoiseGit;
 
 type
@@ -79,9 +80,11 @@ type
     INTAProjectMenuCreatorNotifier)
   private
     procedure AddProjectCommand(Menu: TMenuItem; AKind: TSmartGitInsightProjectMenuKind; const ACaption: string);
+    procedure AddProjectGitExtensionsCommand(Menu: TMenuItem; Command: TGitExtensionsCommand);
     procedure AddProjectSeparator(Menu: TMenuItem);
     procedure AddProjectTortoiseGitCommand(Menu: TMenuItem; Command: TTortoiseGitCommand);
     procedure ProjectCommandClick(Sender: TObject);
+    procedure ProjectGitExtensionsClick(Sender: TObject);
     procedure ProjectTortoiseGitClick(Sender: TObject);
   public
     procedure AddMenu(const Project: IOTAProject; const IdentList: TStrings;
@@ -105,6 +108,8 @@ type
     FProjectMenuUsesLegacyNotifier: Boolean;
     procedure AddAction(const Caption: string; const Handler: TNotifyEvent; const Shortcut: TShortCut = 0);
     procedure AddGitCommand(Menu: TMenuItem; const Caption: string; const Handler: TNotifyEvent);
+    procedure AddGitExtensionsCommand(Menu: TMenuItem; Command: TGitExtensionsCommand);
+    function AddGitExtensionsSubMenu(ParentMenu: TMenuItem): Boolean;
     function AddGitSubMenu(ParentMenu: TMenuItem): TMenuItem;
     function AddTortoiseGitSubMenu(ParentMenu: TMenuItem): Boolean;
     procedure AddTortoiseGitCommand(Menu: TMenuItem; Command: TTortoiseGitCommand);
@@ -151,6 +156,7 @@ type
     procedure OpenTerminal(Sender: TObject);
     procedure ShowSettings(Sender: TObject);
     procedure ShowAbout(Sender: TObject);
+    procedure GitExtensionsCommand(Sender: TObject);
     procedure ScheduleMainMenuRetry;
     procedure UpdateEditorAction(Sender: TObject);
     procedure UpdateEditorTortoiseGitAction(Sender: TObject);
@@ -429,6 +435,19 @@ begin
   Menu.Add(Item);
 end;
 
+procedure TSmartGitInsightProjectMenuNotifier.AddProjectGitExtensionsCommand(Menu: TMenuItem;
+  Command: TGitExtensionsCommand);
+var
+  Item: TMenuItem;
+begin
+  Item := TMenuItem.Create(Menu);
+  Item.Caption := TSmartGitInsightGitExtensions.CommandDisplayName(Command);
+  Item.Tag := Ord(Command);
+  Item.HelpContext := Ord(Command);
+  Item.OnClick := ProjectGitExtensionsClick;
+  Menu.Add(Item);
+end;
+
 procedure TSmartGitInsightProjectMenuNotifier.AddProjectTortoiseGitCommand(Menu: TMenuItem;
   Command: TTortoiseGitCommand);
 var
@@ -444,11 +463,14 @@ end;
 
 function TSmartGitInsightProjectMenuNotifier.AddMenu(const Ident: string): TMenuItem;
 var
+  ExternalMenuAdded: Boolean;
+  GitExtensionsMenu: TMenuItem;
   TortoiseMenu: TMenuItem;
 begin
   Result := TMenuItem.Create(nil);
   Result.Caption := SGIProductName;
 
+  ExternalMenuAdded := False;
   if SmartGitInsightSettings.TortoiseGitEnabled then
   begin
     TortoiseMenu := TMenuItem.Create(Result);
@@ -463,8 +485,28 @@ begin
     AddProjectTortoiseGitCommand(TortoiseMenu, tgRepoBrowser);
     AddProjectTortoiseGitCommand(TortoiseMenu, tgSettings);
     Result.Add(TortoiseMenu);
-    AddProjectSeparator(Result);
+    ExternalMenuAdded := True;
   end;
+
+  if SmartGitInsightSettings.GitExtensionsEnabled then
+  begin
+    GitExtensionsMenu := TMenuItem.Create(Result);
+    GitExtensionsMenu.Caption := 'Git Extensions';
+    AddProjectGitExtensionsCommand(GitExtensionsMenu, geBrowse);
+    AddProjectGitExtensionsCommand(GitExtensionsMenu, geCommit);
+    AddProjectGitExtensionsCommand(GitExtensionsMenu, gePull);
+    AddProjectGitExtensionsCommand(GitExtensionsMenu, gePush);
+    AddProjectGitExtensionsCommand(GitExtensionsMenu, geSynchronize);
+    AddProjectGitExtensionsCommand(GitExtensionsMenu, geFileHistory);
+    AddProjectGitExtensionsCommand(GitExtensionsMenu, geBlame);
+    AddProjectGitExtensionsCommand(GitExtensionsMenu, geDiffTool);
+    AddProjectGitExtensionsCommand(GitExtensionsMenu, geSettings);
+    Result.Add(GitExtensionsMenu);
+    ExternalMenuAdded := True;
+  end;
+
+  if ExternalMenuAdded then
+    AddProjectSeparator(Result);
 
   AddProjectCommand(Result, pmStatus, 'Status');
   AddProjectCommand(Result, pmCommit, 'Commit');
@@ -501,6 +543,31 @@ begin
       TSmartGitInsightGit.DiffActiveFile;
     pmHistory:
       TSmartGitInsightGit.FileHistory;
+  end;
+end;
+
+procedure TSmartGitInsightProjectMenuNotifier.ProjectGitExtensionsClick(Sender: TObject);
+var
+  Command: TGitExtensionsCommand;
+  CommandOrdinal: Integer;
+begin
+  try
+    if not (Sender is TMenuItem) then
+      Exit;
+
+    CommandOrdinal := (Sender as TMenuItem).HelpContext;
+    if (CommandOrdinal < Ord(Low(TGitExtensionsCommand))) or
+      (CommandOrdinal > Ord(High(TGitExtensionsCommand))) then
+      raise Exception.CreateFmt('Invalid Git Extensions command id: %d', [CommandOrdinal]);
+
+    Command := TGitExtensionsCommand(CommandOrdinal);
+    if Command in [geAdd, geApply, geBlame, geDiffTool, geFileEditor, geFileHistory, geRevert, geViewPatch] then
+      TSmartGitInsightGitExtensions.RunForActiveFile(Command)
+    else
+      TSmartGitInsightGitExtensions.RunForActiveRepository(Command);
+  except
+    on E: Exception do
+      MessageDlg(E.Message, mtError, [mbOK], 0);
   end;
 end;
 
@@ -738,6 +805,16 @@ begin
   Menu.Add(Item);
 end;
 
+procedure TSmartGitInsightWizard.AddGitExtensionsCommand(Menu: TMenuItem; Command: TGitExtensionsCommand);
+var
+  Item: TMenuItem;
+begin
+  Item := CreateActionItem(TSmartGitInsightGitExtensions.CommandDisplayName(Command), GitExtensionsCommand);
+  Item.Tag := Ord(Command);
+  Item.HelpContext := Ord(Command);
+  Menu.Add(Item);
+end;
+
 procedure TSmartGitInsightWizard.AddSeparator;
 begin
   FMainMenu.Add(CreateSeparator);
@@ -758,6 +835,66 @@ end;
 procedure TSmartGitInsightWizard.AddGitCommand(Menu: TMenuItem; const Caption: string; const Handler: TNotifyEvent);
 begin
   Menu.Add(CreateActionItem(Caption, Handler));
+end;
+
+function TSmartGitInsightWizard.AddGitExtensionsSubMenu(ParentMenu: TMenuItem): Boolean;
+var
+  GitExtensionsMenu: TMenuItem;
+begin
+  Result := False;
+  if not SmartGitInsightSettings.GitExtensionsEnabled then
+    Exit;
+
+  GitExtensionsMenu := TMenuItem.Create(ParentMenu);
+  GitExtensionsMenu.Caption := 'Git Extensions';
+
+  AddGitExtensionsCommand(GitExtensionsMenu, geBrowse);
+  AddGitExtensionsCommand(GitExtensionsMenu, geOpenRepo);
+  AddGitExtensionsCommand(GitExtensionsMenu, geCommit);
+  AddGitExtensionsCommand(GitExtensionsMenu, gePull);
+  AddGitExtensionsCommand(GitExtensionsMenu, gePush);
+  AddGitExtensionsCommand(GitExtensionsMenu, geSynchronize);
+  GitExtensionsMenu.Add(CreateSeparator);
+  AddGitExtensionsCommand(GitExtensionsMenu, geAdd);
+  AddGitExtensionsCommand(GitExtensionsMenu, geAddFiles);
+  AddGitExtensionsCommand(GitExtensionsMenu, geDiffTool);
+  AddGitExtensionsCommand(GitExtensionsMenu, geViewDiff);
+  AddGitExtensionsCommand(GitExtensionsMenu, geFileHistory);
+  AddGitExtensionsCommand(GitExtensionsMenu, geBlame);
+  AddGitExtensionsCommand(GitExtensionsMenu, geFileEditor);
+  GitExtensionsMenu.Add(CreateSeparator);
+  AddGitExtensionsCommand(GitExtensionsMenu, geBranch);
+  AddGitExtensionsCommand(GitExtensionsMenu, geCheckout);
+  AddGitExtensionsCommand(GitExtensionsMenu, geCheckoutBranch);
+  AddGitExtensionsCommand(GitExtensionsMenu, geCheckoutRevision);
+  AddGitExtensionsCommand(GitExtensionsMenu, geCherryPick);
+  AddGitExtensionsCommand(GitExtensionsMenu, geMerge);
+  AddGitExtensionsCommand(GitExtensionsMenu, geMergeConflicts);
+  AddGitExtensionsCommand(GitExtensionsMenu, geMergeTool);
+  AddGitExtensionsCommand(GitExtensionsMenu, geRebase);
+  AddGitExtensionsCommand(GitExtensionsMenu, geReset);
+  AddGitExtensionsCommand(GitExtensionsMenu, geRevert);
+  GitExtensionsMenu.Add(CreateSeparator);
+  AddGitExtensionsCommand(GitExtensionsMenu, geStash);
+  AddGitExtensionsCommand(GitExtensionsMenu, geTag);
+  AddGitExtensionsCommand(GitExtensionsMenu, geRemotes);
+  AddGitExtensionsCommand(GitExtensionsMenu, geSearchFile);
+  AddGitExtensionsCommand(GitExtensionsMenu, geGitIgnore);
+  AddGitExtensionsCommand(GitExtensionsMenu, geCleanup);
+  GitExtensionsMenu.Add(CreateSeparator);
+  AddGitExtensionsCommand(GitExtensionsMenu, geClone);
+  AddGitExtensionsCommand(GitExtensionsMenu, geInit);
+  AddGitExtensionsCommand(GitExtensionsMenu, geApply);
+  AddGitExtensionsCommand(GitExtensionsMenu, geApplyPatch);
+  AddGitExtensionsCommand(GitExtensionsMenu, geFormatPatch);
+  AddGitExtensionsCommand(GitExtensionsMenu, geViewPatch);
+  GitExtensionsMenu.Add(CreateSeparator);
+  AddGitExtensionsCommand(GitExtensionsMenu, geSettings);
+  AddGitExtensionsCommand(GitExtensionsMenu, geHelp);
+  AddGitExtensionsCommand(GitExtensionsMenu, geAbout);
+
+  ParentMenu.Add(GitExtensionsMenu);
+  Result := True;
 end;
 
 function TSmartGitInsightWizard.AddGitSubMenu(ParentMenu: TMenuItem): TMenuItem;
@@ -911,13 +1048,19 @@ begin
 end;
 
 procedure TSmartGitInsightWizard.RebuildMainMenuItems;
+var
+  ExternalMenuAdded: Boolean;
 begin
   if FMainMenu = nil then
     Exit;
 
   FMainMenu.Clear;
 
-  AddTortoiseGitSubMenu(FMainMenu);
+  ExternalMenuAdded := AddTortoiseGitSubMenu(FMainMenu);
+  if AddGitExtensionsSubMenu(FMainMenu) then
+    ExternalMenuAdded := True;
+  if ExternalMenuAdded then
+    AddSeparator;
   AddGitSubMenu(FMainMenu);
 
   AddSeparator;
@@ -977,6 +1120,7 @@ end;
 
 procedure TSmartGitInsightWizard.RebuildEditorPopupMenu(PopupMenu: TPopupMenu);
 var
+  ExternalMenuAdded: Boolean;
   FoundSmartCodeInsight: Boolean;
   Index: Integer;
   InsertIndex: Integer;
@@ -1012,7 +1156,11 @@ begin
   RootMenu := TMenuItem.Create(PopupMenu);
   RootMenu.Name := SGIEditorPopupMenuName;
   RootMenu.Caption := SGIProductName;
-  AddTortoiseGitSubMenu(RootMenu);
+  ExternalMenuAdded := AddTortoiseGitSubMenu(RootMenu);
+  if AddGitExtensionsSubMenu(RootMenu) then
+    ExternalMenuAdded := True;
+  if ExternalMenuAdded then
+    RootMenu.Add(CreateSeparator);
   AddGitSubMenu(RootMenu);
 
   if RootMenu.Count = 0 then
@@ -1243,6 +1391,34 @@ end;
 procedure TSmartGitInsightWizard.ShowAbout(Sender: TObject);
 begin
   ShowSmartGitInsightAboutDialog;
+end;
+
+procedure TSmartGitInsightWizard.GitExtensionsCommand(Sender: TObject);
+var
+  Command: TGitExtensionsCommand;
+  CommandOrdinal: Integer;
+begin
+  try
+    if Sender is TMenuItem then
+      CommandOrdinal := (Sender as TMenuItem).HelpContext
+    else if Sender is TAction then
+      CommandOrdinal := (Sender as TAction).HelpContext
+    else
+      Exit;
+
+    if (CommandOrdinal < Ord(Low(TGitExtensionsCommand))) or
+      (CommandOrdinal > Ord(High(TGitExtensionsCommand))) then
+      raise Exception.CreateFmt('Invalid Git Extensions command id: %d', [CommandOrdinal]);
+
+    Command := TGitExtensionsCommand(CommandOrdinal);
+    if Command in [geAdd, geApply, geBlame, geDiffTool, geFileEditor, geFileHistory, geRevert, geViewPatch] then
+      TSmartGitInsightGitExtensions.RunForActiveFile(Command)
+    else
+      TSmartGitInsightGitExtensions.RunForActiveRepository(Command);
+  except
+    on E: Exception do
+      MessageDlg(E.Message, mtError, [mbOK], 0);
+  end;
 end;
 
 procedure TSmartGitInsightWizard.UpdateEditorAction(Sender: TObject);

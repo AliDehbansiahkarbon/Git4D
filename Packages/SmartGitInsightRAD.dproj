@@ -106,6 +106,7 @@
         <DCCReference Include="..\Source\SmartGitInsight.Settings.pas"/>
         <DCCReference Include="..\Source\SmartGitInsight.Repository.pas"/>
         <DCCReference Include="..\Source\SmartGitInsight.Git.pas"/>
+        <DCCReference Include="..\Source\SmartGitInsight.GitExtensions.pas"/>
         <DCCReference Include="..\Source\SmartGitInsight.TortoiseGit.pas"/>
         <DCCReference Include="..\Source\SmartGitInsight.Dialogs.pas"/>
         <DCCReference Include="..\Source\SmartGitInsight.Options.pas"/>

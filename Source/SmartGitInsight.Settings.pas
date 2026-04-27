@@ -11,6 +11,8 @@ type
     FDefaultCloneDirectory: string;
     FEditorPopupEnabled: Boolean;
     FGitBashExecutable: string;
+    FGitExtensionsEnabled: Boolean;
+    FGitExtensionsExecutable: string;
     FGitExecutable: string;
     FShowBranchInMenu: Boolean;
     FShowConfirmationForDestructiveActions: Boolean;
@@ -24,6 +26,8 @@ type
     property SettingsFileName: string read GetSettingsFileName;
     property GitExecutable: string read FGitExecutable write FGitExecutable;
     property GitBashExecutable: string read FGitBashExecutable write FGitBashExecutable;
+    property GitExtensionsEnabled: Boolean read FGitExtensionsEnabled write FGitExtensionsEnabled;
+    property GitExtensionsExecutable: string read FGitExtensionsExecutable write FGitExtensionsExecutable;
     property DefaultCloneDirectory: string read FDefaultCloneDirectory write FDefaultCloneDirectory;
     property EditorPopupEnabled: Boolean read FEditorPopupEnabled write FEditorPopupEnabled;
     property ShowBranchInMenu: Boolean read FShowBranchInMenu write FShowBranchInMenu;
@@ -67,7 +71,9 @@ begin
   FEditorPopupEnabled := True;
   FShowBranchInMenu := True;
   FShowConfirmationForDestructiveActions := True;
-  FTortoiseGitEnabled := True;
+  FGitExtensionsEnabled := False;
+  FGitExtensionsExecutable := '';
+  FTortoiseGitEnabled := False;
   FTortoiseGitExecutable := '';
   FBackgroundFetchEnabled := False;
   FBackgroundFetchIntervalSeconds := 300;
@@ -95,6 +101,8 @@ begin
     FEditorPopupEnabled := Ini.ReadBool('IDE', 'EditorPopupEnabled', FEditorPopupEnabled);
     FShowBranchInMenu := Ini.ReadBool('IDE', 'ShowBranchInMenu', FShowBranchInMenu);
     FShowConfirmationForDestructiveActions := Ini.ReadBool('IDE', 'ShowConfirmationForDestructiveActions', FShowConfirmationForDestructiveActions);
+    FGitExtensionsEnabled := Ini.ReadBool('GitExtensions', 'Enabled', FGitExtensionsEnabled);
+    FGitExtensionsExecutable := Ini.ReadString('GitExtensions', 'Executable', FGitExtensionsExecutable);
     FTortoiseGitEnabled := Ini.ReadBool('TortoiseGit', 'Enabled', FTortoiseGitEnabled);
     FTortoiseGitExecutable := Ini.ReadString('TortoiseGit', 'Executable', FTortoiseGitExecutable);
     FBackgroundFetchEnabled := Ini.ReadBool('BackgroundFetch', 'Enabled', FBackgroundFetchEnabled);
@@ -117,6 +125,8 @@ begin
     Ini.WriteBool('IDE', 'EditorPopupEnabled', FEditorPopupEnabled);
     Ini.WriteBool('IDE', 'ShowBranchInMenu', FShowBranchInMenu);
     Ini.WriteBool('IDE', 'ShowConfirmationForDestructiveActions', FShowConfirmationForDestructiveActions);
+    Ini.WriteBool('GitExtensions', 'Enabled', FGitExtensionsEnabled);
+    Ini.WriteString('GitExtensions', 'Executable', FGitExtensionsExecutable);
     Ini.WriteBool('TortoiseGit', 'Enabled', FTortoiseGitEnabled);
     Ini.WriteString('TortoiseGit', 'Executable', FTortoiseGitExecutable);
     Ini.WriteBool('BackgroundFetch', 'Enabled', FBackgroundFetchEnabled);

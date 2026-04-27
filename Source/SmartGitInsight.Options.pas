@@ -19,6 +19,8 @@ type
     FCloneEdit: TEdit;
     FConfirmCheck: TCheckBox;
     FEditorPopupCheck: TCheckBox;
+    FGitExtensionsCheck: TCheckBox;
+    FGitExtensionsEdit: TEdit;
     FGitEdit: TEdit;
     FShowBranchCheck: TCheckBox;
     FTortoiseGitCheck: TCheckBox;
@@ -57,6 +59,7 @@ uses
   System.SysUtils,
   Vcl.Dialogs,
   SmartGitInsight.Constants,
+  SmartGitInsight.GitExtensions,
   SmartGitInsight.Settings,
   SmartGitInsight.TortoiseGit;
 
@@ -121,6 +124,9 @@ begin
   Inc(Top, 10);
   AddCheckBox('Enable TortoiseGit submenu when installed', Top, FTortoiseGitCheck);
   AddLabeledEdit('TortoiseGitProc.exe', Top, FTortoiseGitEdit);
+  Inc(Top, 10);
+  AddCheckBox('Enable Git Extensions submenu when installed', Top, FGitExtensionsCheck);
+  AddLabeledEdit('GitExtensions.exe', Top, FGitExtensionsEdit);
 
   LoadSettings;
 end;
@@ -168,6 +174,10 @@ begin
   FTortoiseGitEdit.Text := SmartGitInsightSettings.TortoiseGitExecutable;
   if FTortoiseGitEdit.Text = '' then
     FTortoiseGitEdit.Text := TSmartGitInsightTortoiseGit.DetectExecutable;
+  FGitExtensionsCheck.Checked := SmartGitInsightSettings.GitExtensionsEnabled;
+  FGitExtensionsEdit.Text := SmartGitInsightSettings.GitExtensionsExecutable;
+  if FGitExtensionsEdit.Text = '' then
+    FGitExtensionsEdit.Text := TSmartGitInsightGitExtensions.DetectExecutable;
 end;
 
 procedure TSmartGitInsightOptionsFrame.SaveSettings;
@@ -182,6 +192,8 @@ begin
   SmartGitInsightSettings.AutoCloseConsoleOnSuccess := FAutoCloseCheck.Checked;
   SmartGitInsightSettings.TortoiseGitEnabled := FTortoiseGitCheck.Checked;
   SmartGitInsightSettings.TortoiseGitExecutable := FTortoiseGitEdit.Text;
+  SmartGitInsightSettings.GitExtensionsEnabled := FGitExtensionsCheck.Checked;
+  SmartGitInsightSettings.GitExtensionsExecutable := FGitExtensionsEdit.Text;
   SmartGitInsightSettings.Save;
 end;
 
