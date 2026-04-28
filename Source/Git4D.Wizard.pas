@@ -6,7 +6,9 @@ uses
   System.Classes,
   System.StrUtils,
   Vcl.ActnList,
+  Vcl.Controls,
   Vcl.ExtCtrls,
+  Vcl.Graphics,
   Vcl.Menus,
   ToolsAPI,
   Git4D.GitExtensions,
@@ -188,8 +190,10 @@ implementation
 
 uses
   System.SysUtils,
+  Vcl.Imaging.pngimage,
   Vcl.Dialogs,
   Vcl.Forms,
+  Winapi.Windows,
   Git4D.Constants,
   Git4D.Dialogs,
   Git4D.Git,
@@ -203,10 +207,341 @@ const
   G4DEditorPopupMenuName = 'Git4DEditorPopupMenu';
   G4DMainMenuName = 'Git4DToolsMenu';
   G4DMainMenuRetryLimit = 20;
+  G4DMenuIconColor = $00F5F5F5;
+
+type
+  TGit4DMenuIconKey = (
+    mikNone,
+    mikFolderOpen,
+    mikCommit,
+    mikPull,
+    mikPush,
+    mikSync,
+    mikAdd,
+    mikDiff,
+    mikHistory,
+    mikBranch,
+    mikCheckout,
+    mikMerge,
+    mikRebase,
+    mikRestore,
+    mikSettings,
+    mikHelp,
+    mikInfo
+  );
+
+var
+  GMenuIconIndexes: array[TGit4DMenuIconKey] of Integer;
+  GMenuImages: Vcl.Controls.TImageList;
+
+{$R '..\resources\Git4DMenuIcons.res'}
 
 function NormalizedCaption(const Caption: string): string;
 begin
   Result := StringReplace(Caption, '&', '', [rfReplaceAll]);
+end;
+
+function MenuIconResourceName(AKey: TGit4DMenuIconKey): string;
+begin
+  case AKey of
+    mikFolderOpen: Result := 'ICON_FOLDER_OPEN';
+    mikCommit: Result := 'ICON_COMMIT';
+    mikPull: Result := 'ICON_PULL';
+    mikPush: Result := 'ICON_PUSH';
+    mikSync: Result := 'ICON_SYNC';
+    mikAdd: Result := 'ICON_ADD';
+    mikDiff: Result := 'ICON_DIFF';
+    mikHistory: Result := 'ICON_HISTORY';
+    mikBranch: Result := 'ICON_BRANCH';
+    mikCheckout: Result := 'ICON_CHECKOUT';
+    mikMerge: Result := 'ICON_MERGE';
+    mikRebase: Result := 'ICON_REBASE';
+    mikRestore: Result := 'ICON_RESTORE';
+    mikSettings: Result := 'ICON_SETTINGS';
+    mikHelp: Result := 'ICON_HELP';
+    mikInfo: Result := 'ICON_INFO';
+  else
+    Result := '';
+  end;
+end;
+
+procedure TintBitmapForDarkMenu(Bitmap: Vcl.Graphics.TBitmap);
+var
+  ColorValue: TColor;
+  X: Integer;
+  Y: Integer;
+begin
+  if Bitmap = nil then
+    Exit;
+
+  Bitmap.PixelFormat := pf32bit;
+  for Y := 0 to Bitmap.Height - 1 do
+    for X := 0 to Bitmap.Width - 1 do
+    begin
+      ColorValue := Bitmap.Canvas.Pixels[X, Y];
+      if (ColorValue <> Bitmap.TransparentColor) and
+        (GetRValue(ColorToRGB(ColorValue)) < 80) and
+        (GetGValue(ColorToRGB(ColorValue)) < 80) and
+        (GetBValue(ColorToRGB(ColorValue)) < 80) then
+        Bitmap.Canvas.Pixels[X, Y] := TColor(G4DMenuIconColor);
+    end;
+end;
+
+function CreateBitmapFromPngResource(const ResourceName: string): Vcl.Graphics.TBitmap;
+var
+  Bitmap: Vcl.Graphics.TBitmap;
+  Png: TPngImage;
+  Stream: TResourceStream;
+begin
+  Result := nil;
+  if ResourceName = '' then
+    Exit;
+
+  Stream := TResourceStream.Create(HInstance, ResourceName, RT_RCDATA);
+  try
+    Png := TPngImage.Create;
+    try
+      Png.LoadFromStream(Stream);
+      Bitmap := Vcl.Graphics.TBitmap.Create;
+      try
+        Bitmap.SetSize(Png.Width, Png.Height);
+        Bitmap.Transparent := True;
+        Bitmap.Canvas.Brush.Color := clFuchsia;
+        Bitmap.Canvas.FillRect(Rect(0, 0, Bitmap.Width, Bitmap.Height));
+        Bitmap.TransparentColor := clFuchsia;
+        Bitmap.Canvas.Draw(0, 0, Png);
+        TintBitmapForDarkMenu(Bitmap);
+        Result := Bitmap;
+        Bitmap := nil;
+      finally
+        Bitmap.Free;
+      end;
+    finally
+      Png.Free;
+    end;
+  finally
+    Stream.Free;
+  end;
+end;
+
+function GetMenuImages: Vcl.Controls.TImageList;
+begin
+  if GMenuImages = nil then
+  begin
+    GMenuImages := Vcl.Controls.TImageList.Create(nil);
+    GMenuImages.Width := GetSystemMetrics(SM_CXSMICON);
+    GMenuImages.Height := GetSystemMetrics(SM_CYSMICON);
+  end;
+  Result := GMenuImages;
+end;
+
+function GetMenuIconIndex(AKey: TGit4DMenuIconKey): Integer;
+var
+  Bitmap: Vcl.Graphics.TBitmap;
+begin
+  Result := GMenuIconIndexes[AKey];
+  if (AKey = mikNone) or (Result >= 0) then
+    Exit;
+
+  Bitmap := CreateBitmapFromPngResource(MenuIconResourceName(AKey));
+  try
+    if Bitmap <> nil then
+      GMenuIconIndexes[AKey] := GetMenuImages.AddMasked(Bitmap, clFuchsia);
+  finally
+    Bitmap.Free;
+  end;
+  Result := GMenuIconIndexes[AKey];
+end;
+
+function GitExtensionsIconKey(Command: TGitExtensionsCommand): TGit4DMenuIconKey;
+begin
+  case Command of
+    geBrowse, geOpenRepo, geClone, geInit:
+      Result := mikFolderOpen;
+    geCommit:
+      Result := mikCommit;
+    gePull:
+      Result := mikPull;
+    gePush:
+      Result := mikPush;
+    geSynchronize, geCleanup, geMergeConflicts:
+      Result := mikSync;
+    geAdd, geAddFiles:
+      Result := mikAdd;
+    geApply, geApplyPatch, geDiffTool, geViewDiff, geViewPatch, geMergeTool, geGitIgnore:
+      Result := mikDiff;
+    geFileHistory, geSearchFile:
+      Result := mikHistory;
+    geBlame, geAbout:
+      Result := mikInfo;
+    geBranch, geTag, geRemotes:
+      Result := mikBranch;
+    geCheckout, geCheckoutBranch, geCheckoutRevision:
+      Result := mikCheckout;
+    geCherryPick, geMerge:
+      Result := mikMerge;
+    geRebase, geStash:
+      Result := mikRebase;
+    geReset, geRevert:
+      Result := mikRestore;
+    geSettings:
+      Result := mikSettings;
+    geHelp:
+      Result := mikHelp;
+    geFileEditor:
+      Result := mikCommit;
+  else
+    Result := mikNone;
+  end;
+end;
+
+function TortoiseGitIconKey(Command: TTortoiseGitCommand): TGit4DMenuIconKey;
+begin
+  case Command of
+    tgFetch, tgPull:
+      Result := mikPull;
+    tgPush:
+      Result := mikPush;
+    tgSync, tgCleanup, tgResolve:
+      Result := mikSync;
+    tgCommit:
+      Result := mikCommit;
+    tgDiff, tgPreviousDiff:
+      Result := mikDiff;
+    tgLog, tgReflog:
+      Result := mikHistory;
+    tgBlame, tgAbout:
+      Result := mikInfo;
+    tgBrowseReferences, tgRevisionGraph, tgCreateBranch, tgCreateTag:
+      Result := mikBranch;
+    tgRepoBrowser, tgExport, tgWorktrees:
+      Result := mikFolderOpen;
+    tgRebase, tgBisectStart, tgStashSave:
+      Result := mikRebase;
+    tgRevert:
+      Result := mikRestore;
+    tgSwitchCheckout:
+      Result := mikCheckout;
+    tgMerge, tgCreatePatchSerial, tgApplyPatchSerial, tgSubmoduleAdd:
+      Result := mikMerge;
+    tgSettings:
+      Result := mikSettings;
+    tgHelp:
+      Result := mikHelp;
+  else
+    Result := mikNone;
+  end;
+end;
+
+function TortoiseSvnIconKey(Command: TTortoiseSvnCommand): TGit4DMenuIconKey;
+begin
+  case Command of
+    svnUpdate:
+      Result := mikPull;
+    svnCommit:
+      Result := mikCommit;
+    svnDiff, svnPreviousDiff:
+      Result := mikDiff;
+    svnLog, svnRevisionGraph:
+      Result := mikHistory;
+    svnBlame, svnAbout:
+      Result := mikInfo;
+    svnRepoBrowser, svnExport:
+      Result := mikFolderOpen;
+    svnCheckForModifications, svnCleanup, svnResolved:
+      Result := mikSync;
+    svnAdd:
+      Result := mikAdd;
+    svnRevert:
+      Result := mikRestore;
+    svnSwitch, svnCheckout:
+      Result := mikCheckout;
+    svnMerge:
+      Result := mikMerge;
+    svnBranchTag:
+      Result := mikBranch;
+    svnSettings:
+      Result := mikSettings;
+    svnHelp:
+      Result := mikHelp;
+  else
+    Result := mikNone;
+  end;
+end;
+
+function InternalGitIconKey(const Caption: string): TGit4DMenuIconKey;
+var
+  Normalized: string;
+begin
+  Normalized := NormalizedCaption(Caption);
+  if SameText(Normalized, 'Browse Repository') or SameText(Normalized, 'Open Repository') then
+    Exit(mikFolderOpen);
+  if SameText(Normalized, 'Commit') then
+    Exit(mikCommit);
+  if SameText(Normalized, 'Pull') or SameText(Normalized, 'Fetch') then
+    Exit(mikPull);
+  if SameText(Normalized, 'Push') then
+    Exit(mikPush);
+  if SameText(Normalized, 'Stash') then
+    Exit(mikRebase);
+  if (Pos('Diff', Normalized) > 0) or SameText(Normalized, 'Edit .gitignore') or
+    SameText(Normalized, 'Apply Patch') or SameText(Normalized, 'Format Patch') then
+    Exit(mikDiff);
+  if Pos('History', Normalized) > 0 then
+    Exit(mikHistory);
+  if Pos('Blame', Normalized) > 0 then
+    Exit(mikInfo);
+  if Pos('Stage', Normalized) > 0 then
+    Exit(mikAdd);
+  if Pos('Reset', Normalized) > 0 then
+    Exit(mikRestore);
+  if (Pos('Branch', Normalized) > 0) or SameText(Normalized, 'Manage Remotes') then
+    Exit(mikBranch);
+  if Pos('Checkout', Normalized) > 0 then
+    Exit(mikCheckout);
+  if Pos('Merge', Normalized) > 0 then
+    Exit(mikMerge);
+  if Pos('Rebase', Normalized) > 0 then
+    Exit(mikRebase);
+  if SameText(Normalized, 'Settings') then
+    Exit(mikSettings);
+  if SameText(Normalized, 'Help') then
+    Exit(mikHelp);
+  if SameText(Normalized, 'About') then
+    Exit(mikInfo);
+  Result := mikNone;
+end;
+
+function ProjectMenuKindIconKey(AKind: TGit4DProjectMenuKind): TGit4DMenuIconKey;
+begin
+  case AKind of
+    pmStatus:
+      Result := mikDiff;
+    pmCommit:
+      Result := mikCommit;
+    pmPull:
+      Result := mikPull;
+    pmPush:
+      Result := mikPush;
+    pmDiff:
+      Result := mikDiff;
+    pmHistory:
+      Result := mikHistory;
+  else
+    Result := mikNone;
+  end;
+end;
+
+procedure ApplyMenuIcon(Item: TMenuItem; AKey: TGit4DMenuIconKey);
+var
+  ImageIndex: Integer;
+begin
+  if Item = nil then
+    Exit;
+
+  ImageIndex := GetMenuIconIndex(AKey);
+  if ImageIndex >= 0 then
+    Item.ImageIndex := ImageIndex;
 end;
 
 constructor TGit4DEditorPopupHook.Create(AWizard: TGit4DWizard; APopupMenu: TPopupMenu);
@@ -440,6 +775,7 @@ begin
   Item.Caption := ACaption;
   Item.Tag := Ord(AKind);
   Item.OnClick := ProjectCommandClick;
+  ApplyMenuIcon(Item, ProjectMenuKindIconKey(AKind));
   Menu.Add(Item);
 end;
 
@@ -462,6 +798,7 @@ begin
   Item.Tag := Ord(Command);
   Item.HelpContext := Ord(Command);
   Item.OnClick := ProjectGitExtensionsClick;
+  ApplyMenuIcon(Item, GitExtensionsIconKey(Command));
   Menu.Add(Item);
 end;
 
@@ -475,6 +812,7 @@ begin
   Item.Tag := Ord(Command);
   Item.HelpContext := Ord(Command);
   Item.OnClick := ProjectTortoiseGitClick;
+  ApplyMenuIcon(Item, TortoiseGitIconKey(Command));
   Menu.Add(Item);
 end;
 
@@ -488,6 +826,7 @@ begin
   Item.Tag := Ord(Command);
   Item.HelpContext := Ord(Command);
   Item.OnClick := ProjectTortoiseSvnClick;
+  ApplyMenuIcon(Item, TortoiseSvnIconKey(Command));
   Menu.Add(Item);
 end;
 
@@ -500,12 +839,14 @@ var
 begin
   Result := TMenuItem.Create(nil);
   Result.Caption := G4DProductName;
+  Result.SubMenuImages := GetMenuImages;
 
   ExternalMenuAdded := False;
   if Git4DSettings.TortoiseSvnEnabled then
   begin
     TortoiseSvnMenu := TMenuItem.Create(Result);
     TortoiseSvnMenu.Caption := 'TortoiseSVN';
+    TortoiseSvnMenu.SubMenuImages := GetMenuImages;
     AddProjectTortoiseSvnCommand(TortoiseSvnMenu, svnLog);
     AddProjectTortoiseSvnCommand(TortoiseSvnMenu, svnDiff);
     AddProjectTortoiseSvnCommand(TortoiseSvnMenu, svnBlame);
@@ -522,6 +863,7 @@ begin
   begin
     TortoiseMenu := TMenuItem.Create(Result);
     TortoiseMenu.Caption := 'TortoiseGit';
+    TortoiseMenu.SubMenuImages := GetMenuImages;
     AddProjectTortoiseGitCommand(TortoiseMenu, tgLog);
     AddProjectTortoiseGitCommand(TortoiseMenu, tgDiff);
     AddProjectTortoiseGitCommand(TortoiseMenu, tgCommit);
@@ -539,6 +881,7 @@ begin
   begin
     GitExtensionsMenu := TMenuItem.Create(Result);
     GitExtensionsMenu.Caption := 'Git Extensions';
+    GitExtensionsMenu.SubMenuImages := GetMenuImages;
     AddProjectGitExtensionsCommand(GitExtensionsMenu, geBrowse);
     AddProjectGitExtensionsCommand(GitExtensionsMenu, geCommit);
     AddProjectGitExtensionsCommand(GitExtensionsMenu, gePull);
@@ -895,6 +1238,7 @@ begin
   Item := CreateActionItem(TGit4DTortoiseGit.CommandDisplayName(Command), TortoiseGitCommand);
   Item.Tag := Ord(Command);
   Item.HelpContext := Ord(Command);
+  ApplyMenuIcon(Item, TortoiseGitIconKey(Command));
   Menu.Add(Item);
 end;
 
@@ -905,6 +1249,7 @@ begin
   Item := CreateActionItem(TGit4DTortoiseSVN.CommandDisplayName(Command), TortoiseSvnCommand);
   Item.Tag := Ord(Command);
   Item.HelpContext := Ord(Command);
+  ApplyMenuIcon(Item, TortoiseSvnIconKey(Command));
   Menu.Add(Item);
 end;
 
@@ -915,6 +1260,7 @@ begin
   Item := CreateActionItem(TGit4DGitExtensions.CommandDisplayName(Command), GitExtensionsCommand);
   Item.Tag := Ord(Command);
   Item.HelpContext := Ord(Command);
+  ApplyMenuIcon(Item, GitExtensionsIconKey(Command));
   Menu.Add(Item);
 end;
 
@@ -936,8 +1282,12 @@ begin
 end;
 
 procedure TGit4DWizard.AddGitCommand(Menu: TMenuItem; const Caption: string; const Handler: TNotifyEvent);
+var
+  Item: TMenuItem;
 begin
-  Menu.Add(CreateActionItem(Caption, Handler));
+  Item := CreateActionItem(Caption, Handler);
+  ApplyMenuIcon(Item, InternalGitIconKey(Caption));
+  Menu.Add(Item);
 end;
 
 function TGit4DWizard.AddTortoiseSvnSubMenu(ParentMenu: TMenuItem): Boolean;
@@ -950,6 +1300,7 @@ begin
 
   TortoiseSvnMenu := TMenuItem.Create(ParentMenu);
   TortoiseSvnMenu.Caption := 'TortoiseSVN';
+  TortoiseSvnMenu.SubMenuImages := GetMenuImages;
 
   AddTortoiseSvnCommand(TortoiseSvnMenu, svnUpdate);
   AddTortoiseSvnCommand(TortoiseSvnMenu, svnCommit);
@@ -990,6 +1341,7 @@ begin
 
   GitExtensionsMenu := TMenuItem.Create(ParentMenu);
   GitExtensionsMenu.Caption := 'Git Extensions';
+  GitExtensionsMenu.SubMenuImages := GetMenuImages;
 
   AddGitExtensionsCommand(GitExtensionsMenu, geBrowse);
   AddGitExtensionsCommand(GitExtensionsMenu, geOpenRepo);
@@ -1044,6 +1396,7 @@ function TGit4DWizard.AddGitSubMenu(ParentMenu: TMenuItem): TMenuItem;
 begin
   Result := TMenuItem.Create(ParentMenu);
   Result.Caption := 'Git';
+  Result.SubMenuImages := GetMenuImages;
 
   AddGitCommand(Result, '&Browse Repository', BrowseRepository);
   AddGitCommand(Result, '&Status', ShowStatus);
@@ -1385,6 +1738,7 @@ begin
 
   TortoiseMenu := TMenuItem.Create(ParentMenu);
   TortoiseMenu.Caption := 'TortoiseGit';
+  TortoiseMenu.SubMenuImages := GetMenuImages;
 
   AddTortoiseGitCommand(TortoiseMenu, tgPull);
   AddTortoiseGitCommand(TortoiseMenu, tgPush);
@@ -1665,6 +2019,12 @@ begin
       MessageDlg(E.Message, mtError, [mbOK], 0);
   end;
 end;
+
+initialization
+  FillChar(GMenuIconIndexes, SizeOf(GMenuIconIndexes), $FF);
+
+finalization
+  GMenuImages.Free;
 
 end.
 
