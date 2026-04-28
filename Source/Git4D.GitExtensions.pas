@@ -1,9 +1,9 @@
-unit SmartGitInsight.GitExtensions;
+unit Git4D.GitExtensions;
 
 interface
 
 uses
-  SmartGitInsight.Repository;
+  Git4D.Repository;
 
 type
   TGitExtensionsCommand = (
@@ -48,14 +48,14 @@ type
     geAbout
   );
 
-  TSmartGitInsightGitExtensions = class
+  TGit4DGitExtensions = class
   public
     class function DetectExecutable: string; static;
     class function EffectiveExecutable: string; static;
     class function IsAvailable: Boolean; static;
     class function IsEnabledAndAvailable: Boolean; static;
     class function CommandDisplayName(ACommand: TGitExtensionsCommand): string; static;
-    class procedure Run(ACommand: TGitExtensionsCommand; const Repository: TSmartGitInsightRepository); static;
+    class procedure Run(ACommand: TGitExtensionsCommand; const Repository: TGit4DRepository); static;
     class procedure RunForActiveRepository(ACommand: TGitExtensionsCommand); static;
     class procedure RunForActiveFile(ACommand: TGitExtensionsCommand); static;
   end;
@@ -67,7 +67,11 @@ uses
   System.Win.Registry,
   Vcl.Dialogs,
   Winapi.Windows,
-  SmartGitInsight.Settings;
+  Git4D.Settings;
+
+var
+  GDetectedExecutable: string;
+  GExecutableDetectionAttempted: Boolean;
 
 function Quote(const Value: string): string;
 begin
@@ -197,7 +201,7 @@ begin
   Result := ACommand in [geClone, geHelp, geAbout, geInit, geSettings];
 end;
 
-class function TSmartGitInsightGitExtensions.DetectExecutable: string;
+class function TGit4DGitExtensions.DetectExecutable: string;
 var
   DirectoryName: string;
 begin
@@ -225,31 +229,31 @@ begin
     Result := '';
 end;
 
-class function TSmartGitInsightGitExtensions.EffectiveExecutable: string;
+class function TGit4DGitExtensions.EffectiveExecutable: string;
 begin
-  Result := SmartGitInsightSettings.GitExtensionsExecutable;
-  if (Result = '') or not FileExists(Result) then
+  Result := Git4DSettings.GitExtensionsExecutable;
+  if (Result <> '') and FileExists(Result) then
+    Exit;
+
+  if not GExecutableDetectionAttempted then
   begin
-    Result := DetectExecutable;
-    if SmartGitInsightSettings.GitExtensionsExecutable = '' then
-    begin
-      SmartGitInsightSettings.GitExtensionsExecutable := Result;
-      SmartGitInsightSettings.Save;
-    end;
+    GDetectedExecutable := DetectExecutable;
+    GExecutableDetectionAttempted := True;
   end;
+  Result := GDetectedExecutable;
 end;
 
-class function TSmartGitInsightGitExtensions.IsAvailable: Boolean;
+class function TGit4DGitExtensions.IsAvailable: Boolean;
 begin
   Result := EffectiveExecutable <> '';
 end;
 
-class function TSmartGitInsightGitExtensions.IsEnabledAndAvailable: Boolean;
+class function TGit4DGitExtensions.IsEnabledAndAvailable: Boolean;
 begin
-  Result := SmartGitInsightSettings.GitExtensionsEnabled and IsAvailable;
+  Result := Git4DSettings.GitExtensionsEnabled and IsAvailable;
 end;
 
-class function TSmartGitInsightGitExtensions.CommandDisplayName(ACommand: TGitExtensionsCommand): string;
+class function TGit4DGitExtensions.CommandDisplayName(ACommand: TGitExtensionsCommand): string;
 begin
   case ACommand of
     geBrowse:
@@ -335,8 +339,8 @@ begin
   end;
 end;
 
-class procedure TSmartGitInsightGitExtensions.Run(ACommand: TGitExtensionsCommand;
-  const Repository: TSmartGitInsightRepository);
+class procedure TGit4DGitExtensions.Run(ACommand: TGitExtensionsCommand;
+  const Repository: TGit4DRepository);
 var
   CommandLine: string;
   CurrentDirectory: PChar;
@@ -351,7 +355,7 @@ begin
   ExecutableName := EffectiveExecutable;
   if ExecutableName = '' then
   begin
-    MessageDlg('GitExtensions.exe was not found. Configure it in Tools > Options > Third Party > Smart GitInsight.',
+    MessageDlg('GitExtensions.exe was not found. Configure it in Tools > Options > Third Party > Git4D.',
       mtInformation, [mbOK], 0);
     Exit;
   end;
@@ -415,14 +419,14 @@ begin
   end;
 end;
 
-class procedure TSmartGitInsightGitExtensions.RunForActiveRepository(ACommand: TGitExtensionsCommand);
+class procedure TGit4DGitExtensions.RunForActiveRepository(ACommand: TGitExtensionsCommand);
 begin
   Run(ACommand, DiscoverActiveRepository);
 end;
 
-class procedure TSmartGitInsightGitExtensions.RunForActiveFile(ACommand: TGitExtensionsCommand);
+class procedure TGit4DGitExtensions.RunForActiveFile(ACommand: TGitExtensionsCommand);
 var
-  Repository: TSmartGitInsightRepository;
+  Repository: TGit4DRepository;
 begin
   Repository := DiscoverActiveRepository;
   if Repository.ActiveFileName = '' then
@@ -432,3 +436,4 @@ begin
 end;
 
 end.
+

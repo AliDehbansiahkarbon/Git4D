@@ -1,9 +1,9 @@
-unit SmartGitInsight.Settings;
+unit Git4D.Settings;
 
 interface
 
 type
-  TSmartGitInsightSettings = class
+  TGit4DSettings = class
   private
     FAutoCloseConsoleOnSuccess: Boolean;
     FBackgroundFetchEnabled: Boolean;
@@ -20,6 +20,8 @@ type
     FTortoiseGitExecutable: string;
     FTortoiseSvnEnabled: Boolean;
     FTortoiseSvnExecutable: string;
+    function GetLegacySettingsFileName: string;
+    function GetSettingsDirectory(const ProductName: string): string;
     function GetSettingsFileName: string;
   public
     constructor Create;
@@ -43,7 +45,7 @@ type
     property AutoCloseConsoleOnSuccess: Boolean read FAutoCloseConsoleOnSuccess write FAutoCloseConsoleOnSuccess;
   end;
 
-function SmartGitInsightSettings: TSmartGitInsightSettings;
+function Git4DSettings: TGit4DSettings;
 
 implementation
 
@@ -51,22 +53,22 @@ uses
   System.IniFiles,
   System.IOUtils,
   System.SysUtils,
-  SmartGitInsight.Constants;
+  Git4D.Constants;
 
 var
-  GSettings: TSmartGitInsightSettings;
+  GSettings: TGit4DSettings;
 
-function SmartGitInsightSettings: TSmartGitInsightSettings;
+function Git4DSettings: TGit4DSettings;
 begin
   if GSettings = nil then
   begin
-    GSettings := TSmartGitInsightSettings.Create;
+    GSettings := TGit4DSettings.Create;
     GSettings.Load;
   end;
   Result := GSettings;
 end;
 
-constructor TSmartGitInsightSettings.Create;
+constructor TGit4DSettings.Create;
 begin
   inherited Create;
   FGitExecutable := 'git.exe';
@@ -86,20 +88,35 @@ begin
   FAutoCloseConsoleOnSuccess := False;
 end;
 
-function TSmartGitInsightSettings.GetSettingsFileName: string;
+function TGit4DSettings.GetSettingsFileName: string;
 var
   SettingsDir: string;
 begin
-  SettingsDir := TPath.Combine(TPath.GetHomePath, SGIProductName);
-  ForceDirectories(SettingsDir);
-  Result := TPath.Combine(SettingsDir, SGISettingsFileName);
+  SettingsDir := GetSettingsDirectory(G4DProductName);
+  Result := TPath.Combine(SettingsDir, G4DSettingsFileName);
 end;
 
-procedure TSmartGitInsightSettings.Load;
+function TGit4DSettings.GetLegacySettingsFileName: string;
+begin
+  Result := TPath.Combine(GetSettingsDirectory('Smart GitInsight'), 'SmartGitInsight.ini');
+end;
+
+function TGit4DSettings.GetSettingsDirectory(const ProductName: string): string;
+begin
+  Result := TPath.Combine(TPath.GetHomePath, ProductName);
+  ForceDirectories(Result);
+end;
+
+procedure TGit4DSettings.Load;
 var
   Ini: TIniFile;
+  IniFileName: string;
 begin
-  Ini := TIniFile.Create(SettingsFileName);
+  IniFileName := SettingsFileName;
+  if (not FileExists(IniFileName)) and FileExists(GetLegacySettingsFileName) then
+    IniFileName := GetLegacySettingsFileName;
+
+  Ini := TIniFile.Create(IniFileName);
   try
     FGitExecutable := Ini.ReadString('Git', 'GitExecutable', FGitExecutable);
     FGitBashExecutable := Ini.ReadString('Git', 'GitBashExecutable', FGitBashExecutable);
@@ -121,7 +138,7 @@ begin
   end;
 end;
 
-procedure TSmartGitInsightSettings.Save;
+procedure TGit4DSettings.Save;
 var
   Ini: TIniFile;
 begin
@@ -153,3 +170,4 @@ finalization
   GSettings.Free;
 
 end.
+

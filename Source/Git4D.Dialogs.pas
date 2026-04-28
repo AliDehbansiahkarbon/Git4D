@@ -1,9 +1,9 @@
-unit SmartGitInsight.Dialogs;
+unit Git4D.Dialogs;
 
 interface
 
-procedure ShowSmartGitInsightSettingsDialog;
-procedure ShowSmartGitInsightAboutDialog;
+procedure ShowGit4DSettingsDialog;
+procedure ShowGit4DAboutDialog;
 
 implementation
 
@@ -15,8 +15,8 @@ uses
   Vcl.ExtCtrls,
   Vcl.Forms,
   Vcl.StdCtrls,
-  SmartGitInsight.Constants,
-  SmartGitInsight.Settings;
+  Git4D.Constants,
+  Git4D.Settings;
 
 procedure AddLabeledEdit(AOwner: TComponent; AParent: TWinControl; const Caption: string;
   var Top: Integer; out Edit: TEdit; const Text: string);
@@ -38,7 +38,7 @@ begin
   Inc(Top, 32);
 end;
 
-procedure ShowSmartGitInsightSettingsDialog;
+procedure ShowGit4DSettingsDialog;
 var
   Form: TForm;
   GitEdit: TEdit;
@@ -55,24 +55,24 @@ var
 begin
   Form := TForm.Create(nil);
   try
-    Form.Caption := SGIProductName + ' Settings';
+    Form.Caption := G4DProductName + ' Settings';
     Form.BorderStyle := bsDialog;
     Form.Position := poScreenCenter;
     Form.ClientWidth := 590;
     Form.ClientHeight := 330;
 
     Top := 18;
-    AddLabeledEdit(Form, Form, 'Git executable', Top, GitEdit, SmartGitInsightSettings.GitExecutable);
-    AddLabeledEdit(Form, Form, 'Git Bash executable', Top, BashEdit, SmartGitInsightSettings.GitBashExecutable);
-    AddLabeledEdit(Form, Form, 'Default clone folder', Top, CloneEdit, SmartGitInsightSettings.DefaultCloneDirectory);
+    AddLabeledEdit(Form, Form, 'Git executable', Top, GitEdit, Git4DSettings.GitExecutable);
+    AddLabeledEdit(Form, Form, 'Git Bash executable', Top, BashEdit, Git4DSettings.GitBashExecutable);
+    AddLabeledEdit(Form, Form, 'Default clone folder', Top, CloneEdit, Git4DSettings.DefaultCloneDirectory);
 
     BranchCheck := TCheckBox.Create(Form);
     BranchCheck.Parent := Form;
     BranchCheck.Left := 180;
     BranchCheck.Top := Top;
     BranchCheck.Width := 380;
-    BranchCheck.Caption := 'Show current branch in the Smart GitInsight menu';
-    BranchCheck.Checked := SmartGitInsightSettings.ShowBranchInMenu;
+    BranchCheck.Caption := 'Show current branch in the Git4D menu';
+    BranchCheck.Checked := Git4DSettings.ShowBranchInMenu;
     Inc(Top, 28);
 
     ConfirmCheck := TCheckBox.Create(Form);
@@ -81,7 +81,7 @@ begin
     ConfirmCheck.Top := Top;
     ConfirmCheck.Width := 380;
     ConfirmCheck.Caption := 'Confirm destructive commands';
-    ConfirmCheck.Checked := SmartGitInsightSettings.ShowConfirmationForDestructiveActions;
+    ConfirmCheck.Checked := Git4DSettings.ShowConfirmationForDestructiveActions;
     Inc(Top, 28);
 
     BackgroundFetchCheck := TCheckBox.Create(Form);
@@ -90,7 +90,7 @@ begin
     BackgroundFetchCheck.Top := Top;
     BackgroundFetchCheck.Width := 380;
     BackgroundFetchCheck.Caption := 'Enable background fetch';
-    BackgroundFetchCheck.Checked := SmartGitInsightSettings.BackgroundFetchEnabled;
+    BackgroundFetchCheck.Checked := Git4DSettings.BackgroundFetchEnabled;
     Inc(Top, 28);
 
     AutoCloseCheck := TCheckBox.Create(Form);
@@ -99,7 +99,7 @@ begin
     AutoCloseCheck.Top := Top;
     AutoCloseCheck.Width := 380;
     AutoCloseCheck.Caption := 'Close command console when the process succeeds';
-    AutoCloseCheck.Checked := SmartGitInsightSettings.AutoCloseConsoleOnSuccess;
+    AutoCloseCheck.Checked := Git4DSettings.AutoCloseConsoleOnSuccess;
 
     ButtonPanel := TPanel.Create(Form);
     ButtonPanel.Parent := Form;
@@ -125,26 +125,27 @@ begin
 
     if Form.ShowModal = mrOK then
     begin
-      SmartGitInsightSettings.GitExecutable := GitEdit.Text;
-      SmartGitInsightSettings.GitBashExecutable := BashEdit.Text;
-      SmartGitInsightSettings.DefaultCloneDirectory := CloneEdit.Text;
-      SmartGitInsightSettings.ShowBranchInMenu := BranchCheck.Checked;
-      SmartGitInsightSettings.ShowConfirmationForDestructiveActions := ConfirmCheck.Checked;
-      SmartGitInsightSettings.BackgroundFetchEnabled := BackgroundFetchCheck.Checked;
-      SmartGitInsightSettings.AutoCloseConsoleOnSuccess := AutoCloseCheck.Checked;
-      SmartGitInsightSettings.Save;
+      Git4DSettings.GitExecutable := GitEdit.Text;
+      Git4DSettings.GitBashExecutable := BashEdit.Text;
+      Git4DSettings.DefaultCloneDirectory := CloneEdit.Text;
+      Git4DSettings.ShowBranchInMenu := BranchCheck.Checked;
+      Git4DSettings.ShowConfirmationForDestructiveActions := ConfirmCheck.Checked;
+      Git4DSettings.BackgroundFetchEnabled := BackgroundFetchCheck.Checked;
+      Git4DSettings.AutoCloseConsoleOnSuccess := AutoCloseCheck.Checked;
+      Git4DSettings.Save;
     end;
   finally
     Form.Free;
   end;
 end;
 
-procedure ShowSmartGitInsightAboutDialog;
+procedure ShowGit4DAboutDialog;
 begin
-  MessageDlg(SGIProductName + sLineBreak + sLineBreak +
+  MessageDlg(G4DProductName + sLineBreak + sLineBreak +
     'RAD Studio Git client for Delphi and C++Builder.' + sLineBreak +
     'This build provides the IDE integration and Git command surface foundation.',
     mtInformation, [mbOK], 0);
 end;
 
 end.
+

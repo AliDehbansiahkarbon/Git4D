@@ -1,15 +1,15 @@
-unit SmartGitInsight.Git;
+unit Git4D.Git;
 
 interface
 
 uses
-  SmartGitInsight.Repository;
+  Git4D.Repository;
 
 type
-  TSmartGitInsightGit = class
+  TGit4DGit = class
   public
-    class procedure OpenTerminal(const Repository: TSmartGitInsightRepository);
-    class procedure RunGitConsole(const Repository: TSmartGitInsightRepository; const Arguments: string); static;
+    class procedure OpenTerminal(const Repository: TGit4DRepository);
+    class procedure RunGitConsole(const Repository: TGit4DRepository; const Arguments: string); static;
     class procedure RunGitForActiveRepository(const Arguments: string); static;
     class procedure RunGitForActiveFile(const ArgumentsBeforeFile: string); static;
     class procedure DiffActiveFile;
@@ -27,36 +27,36 @@ uses
   Vcl.Dialogs,
   Winapi.ShellAPI,
   Winapi.Windows,
-  SmartGitInsight.Constants,
-  SmartGitInsight.Settings;
+  Git4D.Constants,
+  Git4D.Settings;
 
 function Quote(const Value: string): string;
 begin
-  Result := '"' + StringReplace(Value, '"', '\"', [rfReplaceAll]) + '"';
+  Result := '"' + StringReplace(Value, '"', '""', [rfReplaceAll]) + '"';
 end;
 
 function ConsoleSwitch: string;
 begin
-  if SmartGitInsightSettings.AutoCloseConsoleOnSuccess then
+  if Git4DSettings.AutoCloseConsoleOnSuccess then
     Result := '/C'
   else
     Result := '/K';
 end;
 
-procedure RequireRepository(const Repository: TSmartGitInsightRepository);
+procedure RequireRepository(const Repository: TGit4DRepository);
 begin
   if not Repository.IsValid then
     raise Exception.Create('No Git repository was found for the active file or project.');
 end;
 
-class procedure TSmartGitInsightGit.OpenTerminal(const Repository: TSmartGitInsightRepository);
+class procedure TGit4DGit.OpenTerminal(const Repository: TGit4DRepository);
 var
   ExecutableName: string;
   Parameters: string;
 begin
   RequireRepository(Repository);
 
-  ExecutableName := SmartGitInsightSettings.GitBashExecutable;
+  ExecutableName := Git4DSettings.GitBashExecutable;
   if ExecutableName <> '' then
     Parameters := ''
   else
@@ -68,21 +68,21 @@ begin
   ShellExecute(0, 'open', PChar(ExecutableName), PChar(Parameters), PChar(Repository.RootPath), SW_SHOWNORMAL);
 end;
 
-class procedure TSmartGitInsightGit.RunGitConsole(const Repository: TSmartGitInsightRepository; const Arguments: string);
+class procedure TGit4DGit.RunGitConsole(const Repository: TGit4DRepository; const Arguments: string);
 var
   Parameters: string;
 begin
   RequireRepository(Repository);
-  Parameters := Format('%s cd /d %s && %s %s', [
+  Parameters := Format('%s "cd /d %s && %s %s"', [
     ConsoleSwitch,
     Quote(Repository.RootPath),
-    SmartGitInsightSettings.GitExecutable,
+    Quote(Git4DSettings.GitExecutable),
     Arguments
   ]);
   ShellExecute(0, 'open', 'cmd.exe', PChar(Parameters), PChar(Repository.RootPath), SW_SHOWNORMAL);
 end;
 
-class procedure TSmartGitInsightGit.RunGitForActiveRepository(const Arguments: string);
+class procedure TGit4DGit.RunGitForActiveRepository(const Arguments: string);
 begin
   try
     RunGitConsole(DiscoverActiveRepository, Arguments);
@@ -92,9 +92,9 @@ begin
   end;
 end;
 
-class procedure TSmartGitInsightGit.RunGitForActiveFile(const ArgumentsBeforeFile: string);
+class procedure TGit4DGit.RunGitForActiveFile(const ArgumentsBeforeFile: string);
 var
-  Repository: TSmartGitInsightRepository;
+  Repository: TGit4DRepository;
   RelativeFileName: string;
 begin
   try
@@ -111,33 +111,34 @@ begin
   end;
 end;
 
-class procedure TSmartGitInsightGit.DiffActiveFile;
+class procedure TGit4DGit.DiffActiveFile;
 begin
   RunGitForActiveFile('diff');
 end;
 
-class procedure TSmartGitInsightGit.FileHistory;
+class procedure TGit4DGit.FileHistory;
 begin
   RunGitForActiveFile('log --follow --stat');
 end;
 
-class procedure TSmartGitInsightGit.BlameActiveFile;
+class procedure TGit4DGit.BlameActiveFile;
 begin
   RunGitForActiveFile('blame');
 end;
 
-class procedure TSmartGitInsightGit.ResetActiveFile;
+class procedure TGit4DGit.ResetActiveFile;
 begin
-  if SmartGitInsightSettings.ShowConfirmationForDestructiveActions and
+  if Git4DSettings.ShowConfirmationForDestructiveActions and
     (MessageDlg('Reset changes in the active file?', mtConfirmation, [mbYes, mbNo], 0) <> mrYes) then
     Exit;
 
-  RunGitForActiveFile('checkout');
+  RunGitForActiveFile('restore --source=HEAD --worktree');
 end;
 
-class procedure TSmartGitInsightGit.StageActiveFile;
+class procedure TGit4DGit.StageActiveFile;
 begin
   RunGitForActiveFile('add');
 end;
 
 end.
+

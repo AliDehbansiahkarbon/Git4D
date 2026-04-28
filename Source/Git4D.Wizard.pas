@@ -1,37 +1,39 @@
-unit SmartGitInsight.Wizard;
+unit Git4D.Wizard;
 
 interface
 
 uses
   System.Classes,
+  System.StrUtils,
   Vcl.ActnList,
   Vcl.ExtCtrls,
   Vcl.Menus,
   ToolsAPI,
-  SmartGitInsight.GitExtensions,
-  SmartGitInsight.TortoiseGit,
-  SmartGitInsight.TortoiseSVN;
+  Git4D.GitExtensions,
+  Git4D.TortoiseGit,
+  Git4D.TortoiseSVN;
 
 type
-  TSmartGitInsightWizard = class;
+  TGit4DWizard = class;
 
-  TSmartGitInsightEditorPopupHook = class(TComponent)
+  TGit4DEditorPopupHook = class(TComponent)
   private
     FOldOnPopup: TNotifyEvent;
+    FPopupOpening: Boolean;
     FPopupMenu: TPopupMenu;
-    FWizard: TSmartGitInsightWizard;
+    FWizard: TGit4DWizard;
     function IsHooked: Boolean;
     procedure PopupOpening(Sender: TObject);
   protected
     procedure Notification(AComponent: TComponent; Operation: TOperation); override;
   public
-    constructor Create(AWizard: TSmartGitInsightWizard; APopupMenu: TPopupMenu); reintroduce;
+    constructor Create(AWizard: TGit4DWizard; APopupMenu: TPopupMenu); reintroduce;
     destructor Destroy; override;
     procedure EnsureHooked;
     property PopupMenu: TPopupMenu read FPopupMenu;
   end;
 
-  TSmartGitInsightProjectMenuKind = (
+  TGit4DProjectMenuKind = (
     pmStatus,
     pmCommit,
     pmPull,
@@ -40,20 +42,20 @@ type
     pmHistory
   );
 
-  TSmartGitInsightProjectMenuItem = class(TNotifierObject, IOTAProjectManagerMenu)
+  TGit4DProjectMenuItem = class(TNotifierObject, IOTAProjectManagerMenu)
   private
     FCaption: string;
     FChecked: Boolean;
     FEnabled: Boolean;
     FHelpContext: Integer;
     FIsMultiSelectable: Boolean;
-    FKind: TSmartGitInsightProjectMenuKind;
+    FKind: TGit4DProjectMenuKind;
     FName: string;
     FParent: string;
     FPosition: Integer;
     FVerb: string;
   public
-    constructor Create(AKind: TSmartGitInsightProjectMenuKind; const ACaption, AName: string);
+    constructor Create(AKind: TGit4DProjectMenuKind; const ACaption, AName: string);
     function GetCaption: string;
     function GetChecked: Boolean;
     function GetEnabled: Boolean;
@@ -77,10 +79,10 @@ type
     function PostExecute(const MenuContextList: IInterfaceList): Boolean;
   end;
 
-  TSmartGitInsightProjectMenuNotifier = class(TNotifierObject, IOTAProjectMenuItemCreatorNotifier,
+  TGit4DProjectMenuNotifier = class(TNotifierObject, IOTAProjectMenuItemCreatorNotifier,
     INTAProjectMenuCreatorNotifier)
   private
-    procedure AddProjectCommand(Menu: TMenuItem; AKind: TSmartGitInsightProjectMenuKind; const ACaption: string);
+    procedure AddProjectCommand(Menu: TMenuItem; AKind: TGit4DProjectMenuKind; const ACaption: string);
     procedure AddProjectGitExtensionsCommand(Menu: TMenuItem; Command: TGitExtensionsCommand);
     procedure AddProjectSeparator(Menu: TMenuItem);
     procedure AddProjectTortoiseGitCommand(Menu: TMenuItem; Command: TTortoiseGitCommand);
@@ -96,7 +98,7 @@ type
     function CanHandle(const Ident: string): Boolean;
   end;
 
-  TSmartGitInsightWizard = class(TNotifierObject, IOTAWizard, IOTAMenuWizard)
+  TGit4DWizard = class(TNotifierObject, IOTAWizard, IOTAMenuWizard)
   private
     FActionList: TActionList;
     FEditorMenuInstalled: Boolean;
@@ -106,7 +108,7 @@ type
     FMainMenuInstalled: Boolean;
     FMainMenuRetryCount: Integer;
     FMainMenuRetryTimer: TTimer;
-    FProjectMenuNotifier: TSmartGitInsightProjectMenuNotifier;
+    FProjectMenuNotifier: TGit4DProjectMenuNotifier;
     FProjectMenuNotifierIndex: Integer;
     FProjectMenuUsesLegacyNotifier: Boolean;
     procedure AddAction(const Caption: string; const Handler: TNotifyEvent; const Shortcut: TShortCut = 0);
@@ -127,16 +129,17 @@ type
     procedure ClearLegacyEditorLocalMenuRegistrations;
     procedure HookEditorPopups;
     procedure HookPopupMenu(PopupMenu: TPopupMenu);
+    function IsCandidateEditorPopupMenu(PopupMenu: TPopupMenu): Boolean;
     procedure InstallEditorLocalMenu;
     procedure InstallMainMenu;
     procedure InstallProjectManagerMenu;
-    function IsSmartGitInsightPopupMenu(PopupMenu: TPopupMenu): Boolean;
+    function IsGit4DPopupMenu(PopupMenu: TPopupMenu): Boolean;
     procedure MainMenuRetryTimer(Sender: TObject);
     procedure UninstallEditorLocalMenu;
     procedure MainMenuPopup(Sender: TObject);
     procedure RebuildMainMenuItems;
     procedure RebuildEditorPopupMenu(PopupMenu: TPopupMenu);
-    procedure RemoveSmartGitInsightPopupItem(PopupMenu: TPopupMenu);
+    procedure RemoveGit4DPopupItem(PopupMenu: TPopupMenu);
     procedure BrowseRepository(Sender: TObject);
     procedure ShowStatus(Sender: TObject);
     procedure Commit(Sender: TObject);
@@ -187,26 +190,26 @@ uses
   System.SysUtils,
   Vcl.Dialogs,
   Vcl.Forms,
-  SmartGitInsight.Constants,
-  SmartGitInsight.Dialogs,
-  SmartGitInsight.Git,
-  SmartGitInsight.Options,
-  SmartGitInsight.Repository,
-  SmartGitInsight.Settings;
+  Git4D.Constants,
+  Git4D.Dialogs,
+  Git4D.Git,
+  Git4D.Options,
+  Git4D.Repository,
+  Git4D.Settings;
 
 const
-  SGILegacyEditorActionListCategory = 'SmartGitInsight';
-  SGILegacyEditorActionListCategory2 = 'SmartGitInsight.EditorLocalMenu';
-  SGIEditorPopupMenuName = 'SmartGitInsightEditorPopupMenu';
-  SGIMainMenuName = 'SmartGitInsightToolsMenu';
-  SGIMainMenuRetryLimit = 20;
+  G4DLegacyEditorActionListCategory = 'Git4D';
+  G4DLegacyEditorActionListCategory2 = 'Git4D.EditorLocalMenu';
+  G4DEditorPopupMenuName = 'Git4DEditorPopupMenu';
+  G4DMainMenuName = 'Git4DToolsMenu';
+  G4DMainMenuRetryLimit = 20;
 
 function NormalizedCaption(const Caption: string): string;
 begin
   Result := StringReplace(Caption, '&', '', [rfReplaceAll]);
 end;
 
-constructor TSmartGitInsightEditorPopupHook.Create(AWizard: TSmartGitInsightWizard; APopupMenu: TPopupMenu);
+constructor TGit4DEditorPopupHook.Create(AWizard: TGit4DWizard; APopupMenu: TPopupMenu);
 begin
   inherited Create(nil);
   FWizard := AWizard;
@@ -214,7 +217,7 @@ begin
   EnsureHooked;
 end;
 
-procedure TSmartGitInsightEditorPopupHook.EnsureHooked;
+procedure TGit4DEditorPopupHook.EnsureHooked;
 begin
   if FPopupMenu <> nil then
   begin
@@ -227,7 +230,7 @@ begin
   end;
 end;
 
-destructor TSmartGitInsightEditorPopupHook.Destroy;
+destructor TGit4DEditorPopupHook.Destroy;
 begin
   if FPopupMenu <> nil then
   begin
@@ -241,14 +244,14 @@ begin
   inherited Destroy;
 end;
 
-procedure TSmartGitInsightEditorPopupHook.Notification(AComponent: TComponent; Operation: TOperation);
+procedure TGit4DEditorPopupHook.Notification(AComponent: TComponent; Operation: TOperation);
 begin
   inherited Notification(AComponent, Operation);
   if (Operation = opRemove) and (AComponent = FPopupMenu) then
     FPopupMenu := nil;
 end;
 
-function TSmartGitInsightEditorPopupHook.IsHooked: Boolean;
+function TGit4DEditorPopupHook.IsHooked: Boolean;
 var
   CurrentMethod: TMethod;
   HookEvent: TNotifyEvent;
@@ -264,17 +267,25 @@ begin
   Result := (CurrentMethod.Code = HookMethod.Code) and (CurrentMethod.Data = HookMethod.Data);
 end;
 
-procedure TSmartGitInsightEditorPopupHook.PopupOpening(Sender: TObject);
+procedure TGit4DEditorPopupHook.PopupOpening(Sender: TObject);
 begin
-  if (FWizard <> nil) and (Sender is TPopupMenu) then
-    FWizard.RemoveSmartGitInsightPopupItem(Sender as TPopupMenu);
-  if Assigned(FOldOnPopup) then
-    FOldOnPopup(Sender);
-  if (FWizard <> nil) and (Sender is TPopupMenu) then
-    FWizard.RebuildEditorPopupMenu(Sender as TPopupMenu);
+  if FPopupOpening then
+    Exit;
+
+  FPopupOpening := True;
+  try
+    if (FWizard <> nil) and (Sender is TPopupMenu) then
+      FWizard.RemoveGit4DPopupItem(Sender as TPopupMenu);
+    if Assigned(FOldOnPopup) then
+      FOldOnPopup(Sender);
+    if (FWizard <> nil) and (Sender is TPopupMenu) then
+      FWizard.RebuildEditorPopupMenu(Sender as TPopupMenu);
+  finally
+    FPopupOpening := False;
+  end;
 end;
 
-constructor TSmartGitInsightProjectMenuItem.Create(AKind: TSmartGitInsightProjectMenuKind; const ACaption, AName: string);
+constructor TGit4DProjectMenuItem.Create(AKind: TGit4DProjectMenuKind; const ACaption, AName: string);
 begin
   inherited Create;
   FKind := AKind;
@@ -285,143 +296,143 @@ begin
   FVerb := AName;
 end;
 
-function TSmartGitInsightProjectMenuItem.GetCaption: string;
+function TGit4DProjectMenuItem.GetCaption: string;
 begin
   Result := FCaption;
 end;
 
-function TSmartGitInsightProjectMenuItem.GetChecked: Boolean;
+function TGit4DProjectMenuItem.GetChecked: Boolean;
 begin
   Result := FChecked;
 end;
 
-function TSmartGitInsightProjectMenuItem.GetEnabled: Boolean;
+function TGit4DProjectMenuItem.GetEnabled: Boolean;
 begin
   Result := FEnabled;
 end;
 
-function TSmartGitInsightProjectMenuItem.GetHelpContext: Integer;
+function TGit4DProjectMenuItem.GetHelpContext: Integer;
 begin
   Result := FHelpContext;
 end;
 
-function TSmartGitInsightProjectMenuItem.GetName: string;
+function TGit4DProjectMenuItem.GetName: string;
 begin
   Result := FName;
 end;
 
-function TSmartGitInsightProjectMenuItem.GetParent: string;
+function TGit4DProjectMenuItem.GetParent: string;
 begin
   Result := FParent;
 end;
 
-function TSmartGitInsightProjectMenuItem.GetPosition: Integer;
+function TGit4DProjectMenuItem.GetPosition: Integer;
 begin
   Result := FPosition;
 end;
 
-function TSmartGitInsightProjectMenuItem.GetVerb: string;
+function TGit4DProjectMenuItem.GetVerb: string;
 begin
   Result := FVerb;
 end;
 
-procedure TSmartGitInsightProjectMenuItem.SetCaption(const Value: string);
+procedure TGit4DProjectMenuItem.SetCaption(const Value: string);
 begin
   FCaption := Value;
 end;
 
-procedure TSmartGitInsightProjectMenuItem.SetChecked(Value: Boolean);
+procedure TGit4DProjectMenuItem.SetChecked(Value: Boolean);
 begin
   FChecked := Value;
 end;
 
-procedure TSmartGitInsightProjectMenuItem.SetEnabled(Value: Boolean);
+procedure TGit4DProjectMenuItem.SetEnabled(Value: Boolean);
 begin
   FEnabled := Value;
 end;
 
-procedure TSmartGitInsightProjectMenuItem.SetHelpContext(Value: Integer);
+procedure TGit4DProjectMenuItem.SetHelpContext(Value: Integer);
 begin
   FHelpContext := Value;
 end;
 
-procedure TSmartGitInsightProjectMenuItem.SetName(const Value: string);
+procedure TGit4DProjectMenuItem.SetName(const Value: string);
 begin
   FName := Value;
 end;
 
-procedure TSmartGitInsightProjectMenuItem.SetParent(const Value: string);
+procedure TGit4DProjectMenuItem.SetParent(const Value: string);
 begin
   FParent := Value;
 end;
 
-procedure TSmartGitInsightProjectMenuItem.SetPosition(Value: Integer);
+procedure TGit4DProjectMenuItem.SetPosition(Value: Integer);
 begin
   FPosition := Value;
 end;
 
-procedure TSmartGitInsightProjectMenuItem.SetVerb(const Value: string);
+procedure TGit4DProjectMenuItem.SetVerb(const Value: string);
 begin
   FVerb := Value;
 end;
 
-function TSmartGitInsightProjectMenuItem.GetIsMultiSelectable: Boolean;
+function TGit4DProjectMenuItem.GetIsMultiSelectable: Boolean;
 begin
   Result := FIsMultiSelectable;
 end;
 
-procedure TSmartGitInsightProjectMenuItem.SetIsMultiSelectable(Value: Boolean);
+procedure TGit4DProjectMenuItem.SetIsMultiSelectable(Value: Boolean);
 begin
   FIsMultiSelectable := Value;
 end;
 
-procedure TSmartGitInsightProjectMenuItem.Execute(const MenuContextList: IInterfaceList);
+procedure TGit4DProjectMenuItem.Execute(const MenuContextList: IInterfaceList);
 begin
   case FKind of
     pmStatus:
-      TSmartGitInsightGit.RunGitForActiveRepository('status --short --branch');
+      TGit4DGit.RunGitForActiveRepository('status --short --branch');
     pmCommit:
-      TSmartGitInsightGit.RunGitForActiveRepository('status --short && git add --patch && git commit');
+      TGit4DGit.RunGitForActiveRepository('status --short && git add --patch && git commit');
     pmPull:
-      TSmartGitInsightGit.RunGitForActiveRepository('pull --stat');
+      TGit4DGit.RunGitForActiveRepository('pull --stat');
     pmPush:
-      TSmartGitInsightGit.RunGitForActiveRepository('push');
+      TGit4DGit.RunGitForActiveRepository('push');
     pmDiff:
-      TSmartGitInsightGit.DiffActiveFile;
+      TGit4DGit.DiffActiveFile;
     pmHistory:
-      TSmartGitInsightGit.FileHistory;
+      TGit4DGit.FileHistory;
   end;
 end;
 
-function TSmartGitInsightProjectMenuItem.PreExecute(const MenuContextList: IInterfaceList): Boolean;
+function TGit4DProjectMenuItem.PreExecute(const MenuContextList: IInterfaceList): Boolean;
 begin
   Result := True;
 end;
 
-function TSmartGitInsightProjectMenuItem.PostExecute(const MenuContextList: IInterfaceList): Boolean;
+function TGit4DProjectMenuItem.PostExecute(const MenuContextList: IInterfaceList): Boolean;
 begin
   Result := True;
 end;
 
-procedure TSmartGitInsightProjectMenuNotifier.AddMenu(const Project: IOTAProject; const IdentList: TStrings;
+procedure TGit4DProjectMenuNotifier.AddMenu(const Project: IOTAProject; const IdentList: TStrings;
   const ProjectManagerMenuList: IInterfaceList; IsMultiSelect: Boolean);
 begin
-  ProjectManagerMenuList.Add(TSmartGitInsightProjectMenuItem.Create(pmStatus,
-    SGIProductName + ': Status', 'SmartGitInsightProjectStatus') as IOTAProjectManagerMenu);
-  ProjectManagerMenuList.Add(TSmartGitInsightProjectMenuItem.Create(pmCommit,
-    SGIProductName + ': Commit', 'SmartGitInsightProjectCommit') as IOTAProjectManagerMenu);
-  ProjectManagerMenuList.Add(TSmartGitInsightProjectMenuItem.Create(pmPull,
-    SGIProductName + ': Pull', 'SmartGitInsightProjectPull') as IOTAProjectManagerMenu);
-  ProjectManagerMenuList.Add(TSmartGitInsightProjectMenuItem.Create(pmPush,
-    SGIProductName + ': Push', 'SmartGitInsightProjectPush') as IOTAProjectManagerMenu);
-  ProjectManagerMenuList.Add(TSmartGitInsightProjectMenuItem.Create(pmDiff,
-    SGIProductName + ': Diff Current File', 'SmartGitInsightProjectDiff') as IOTAProjectManagerMenu);
-  ProjectManagerMenuList.Add(TSmartGitInsightProjectMenuItem.Create(pmHistory,
-    SGIProductName + ': File History', 'SmartGitInsightProjectHistory') as IOTAProjectManagerMenu);
+  ProjectManagerMenuList.Add(TGit4DProjectMenuItem.Create(pmStatus,
+    G4DProductName + ': Status', 'Git4DProjectStatus') as IOTAProjectManagerMenu);
+  ProjectManagerMenuList.Add(TGit4DProjectMenuItem.Create(pmCommit,
+    G4DProductName + ': Commit', 'Git4DProjectCommit') as IOTAProjectManagerMenu);
+  ProjectManagerMenuList.Add(TGit4DProjectMenuItem.Create(pmPull,
+    G4DProductName + ': Pull', 'Git4DProjectPull') as IOTAProjectManagerMenu);
+  ProjectManagerMenuList.Add(TGit4DProjectMenuItem.Create(pmPush,
+    G4DProductName + ': Push', 'Git4DProjectPush') as IOTAProjectManagerMenu);
+  ProjectManagerMenuList.Add(TGit4DProjectMenuItem.Create(pmDiff,
+    G4DProductName + ': Diff Current File', 'Git4DProjectDiff') as IOTAProjectManagerMenu);
+  ProjectManagerMenuList.Add(TGit4DProjectMenuItem.Create(pmHistory,
+    G4DProductName + ': File History', 'Git4DProjectHistory') as IOTAProjectManagerMenu);
 end;
 
-procedure TSmartGitInsightProjectMenuNotifier.AddProjectCommand(Menu: TMenuItem;
-  AKind: TSmartGitInsightProjectMenuKind; const ACaption: string);
+procedure TGit4DProjectMenuNotifier.AddProjectCommand(Menu: TMenuItem;
+  AKind: TGit4DProjectMenuKind; const ACaption: string);
 var
   Item: TMenuItem;
 begin
@@ -432,7 +443,7 @@ begin
   Menu.Add(Item);
 end;
 
-procedure TSmartGitInsightProjectMenuNotifier.AddProjectSeparator(Menu: TMenuItem);
+procedure TGit4DProjectMenuNotifier.AddProjectSeparator(Menu: TMenuItem);
 var
   Item: TMenuItem;
 begin
@@ -441,46 +452,46 @@ begin
   Menu.Add(Item);
 end;
 
-procedure TSmartGitInsightProjectMenuNotifier.AddProjectGitExtensionsCommand(Menu: TMenuItem;
+procedure TGit4DProjectMenuNotifier.AddProjectGitExtensionsCommand(Menu: TMenuItem;
   Command: TGitExtensionsCommand);
 var
   Item: TMenuItem;
 begin
   Item := TMenuItem.Create(Menu);
-  Item.Caption := TSmartGitInsightGitExtensions.CommandDisplayName(Command);
+  Item.Caption := TGit4DGitExtensions.CommandDisplayName(Command);
   Item.Tag := Ord(Command);
   Item.HelpContext := Ord(Command);
   Item.OnClick := ProjectGitExtensionsClick;
   Menu.Add(Item);
 end;
 
-procedure TSmartGitInsightProjectMenuNotifier.AddProjectTortoiseGitCommand(Menu: TMenuItem;
+procedure TGit4DProjectMenuNotifier.AddProjectTortoiseGitCommand(Menu: TMenuItem;
   Command: TTortoiseGitCommand);
 var
   Item: TMenuItem;
 begin
   Item := TMenuItem.Create(Menu);
-  Item.Caption := TSmartGitInsightTortoiseGit.CommandDisplayName(Command);
+  Item.Caption := TGit4DTortoiseGit.CommandDisplayName(Command);
   Item.Tag := Ord(Command);
   Item.HelpContext := Ord(Command);
   Item.OnClick := ProjectTortoiseGitClick;
   Menu.Add(Item);
 end;
 
-procedure TSmartGitInsightProjectMenuNotifier.AddProjectTortoiseSvnCommand(Menu: TMenuItem;
+procedure TGit4DProjectMenuNotifier.AddProjectTortoiseSvnCommand(Menu: TMenuItem;
   Command: TTortoiseSvnCommand);
 var
   Item: TMenuItem;
 begin
   Item := TMenuItem.Create(Menu);
-  Item.Caption := TSmartGitInsightTortoiseSVN.CommandDisplayName(Command);
+  Item.Caption := TGit4DTortoiseSVN.CommandDisplayName(Command);
   Item.Tag := Ord(Command);
   Item.HelpContext := Ord(Command);
   Item.OnClick := ProjectTortoiseSvnClick;
   Menu.Add(Item);
 end;
 
-function TSmartGitInsightProjectMenuNotifier.AddMenu(const Ident: string): TMenuItem;
+function TGit4DProjectMenuNotifier.AddMenu(const Ident: string): TMenuItem;
 var
   ExternalMenuAdded: Boolean;
   GitExtensionsMenu: TMenuItem;
@@ -488,10 +499,10 @@ var
   TortoiseSvnMenu: TMenuItem;
 begin
   Result := TMenuItem.Create(nil);
-  Result.Caption := SGIProductName;
+  Result.Caption := G4DProductName;
 
   ExternalMenuAdded := False;
-  if SmartGitInsightSettings.TortoiseSvnEnabled then
+  if Git4DSettings.TortoiseSvnEnabled then
   begin
     TortoiseSvnMenu := TMenuItem.Create(Result);
     TortoiseSvnMenu.Caption := 'TortoiseSVN';
@@ -507,7 +518,7 @@ begin
     ExternalMenuAdded := True;
   end;
 
-  if SmartGitInsightSettings.TortoiseGitEnabled then
+  if Git4DSettings.TortoiseGitEnabled then
   begin
     TortoiseMenu := TMenuItem.Create(Result);
     TortoiseMenu.Caption := 'TortoiseGit';
@@ -524,7 +535,7 @@ begin
     ExternalMenuAdded := True;
   end;
 
-  if SmartGitInsightSettings.GitExtensionsEnabled then
+  if Git4DSettings.GitExtensionsEnabled then
   begin
     GitExtensionsMenu := TMenuItem.Create(Result);
     GitExtensionsMenu.Caption := 'Git Extensions';
@@ -553,36 +564,36 @@ begin
   AddProjectCommand(Result, pmHistory, 'File History');
 end;
 
-function TSmartGitInsightProjectMenuNotifier.CanHandle(const Ident: string): Boolean;
+function TGit4DProjectMenuNotifier.CanHandle(const Ident: string): Boolean;
 begin
   Result := True;
 end;
 
-procedure TSmartGitInsightProjectMenuNotifier.ProjectCommandClick(Sender: TObject);
+procedure TGit4DProjectMenuNotifier.ProjectCommandClick(Sender: TObject);
 var
-  Kind: TSmartGitInsightProjectMenuKind;
+  Kind: TGit4DProjectMenuKind;
 begin
   if not (Sender is TMenuItem) then
     Exit;
 
-  Kind := TSmartGitInsightProjectMenuKind((Sender as TMenuItem).Tag);
+  Kind := TGit4DProjectMenuKind((Sender as TMenuItem).Tag);
   case Kind of
     pmStatus:
-      TSmartGitInsightGit.RunGitForActiveRepository('status --short --branch');
+      TGit4DGit.RunGitForActiveRepository('status --short --branch');
     pmCommit:
-      TSmartGitInsightGit.RunGitForActiveRepository('status --short && git add --patch && git commit');
+      TGit4DGit.RunGitForActiveRepository('status --short && git add --patch && git commit');
     pmPull:
-      TSmartGitInsightGit.RunGitForActiveRepository('pull --stat');
+      TGit4DGit.RunGitForActiveRepository('pull --stat');
     pmPush:
-      TSmartGitInsightGit.RunGitForActiveRepository('push');
+      TGit4DGit.RunGitForActiveRepository('push');
     pmDiff:
-      TSmartGitInsightGit.DiffActiveFile;
+      TGit4DGit.DiffActiveFile;
     pmHistory:
-      TSmartGitInsightGit.FileHistory;
+      TGit4DGit.FileHistory;
   end;
 end;
 
-procedure TSmartGitInsightProjectMenuNotifier.ProjectGitExtensionsClick(Sender: TObject);
+procedure TGit4DProjectMenuNotifier.ProjectGitExtensionsClick(Sender: TObject);
 var
   Command: TGitExtensionsCommand;
   CommandOrdinal: Integer;
@@ -598,16 +609,16 @@ begin
 
     Command := TGitExtensionsCommand(CommandOrdinal);
     if Command in [geAdd, geApply, geBlame, geDiffTool, geFileEditor, geFileHistory, geRevert, geViewPatch] then
-      TSmartGitInsightGitExtensions.RunForActiveFile(Command)
+      TGit4DGitExtensions.RunForActiveFile(Command)
     else
-      TSmartGitInsightGitExtensions.RunForActiveRepository(Command);
+      TGit4DGitExtensions.RunForActiveRepository(Command);
   except
     on E: Exception do
       MessageDlg(E.Message, mtError, [mbOK], 0);
   end;
 end;
 
-procedure TSmartGitInsightProjectMenuNotifier.ProjectTortoiseGitClick(Sender: TObject);
+procedure TGit4DProjectMenuNotifier.ProjectTortoiseGitClick(Sender: TObject);
 var
   Command: TTortoiseGitCommand;
   CommandOrdinal: Integer;
@@ -623,16 +634,16 @@ begin
 
     Command := TTortoiseGitCommand(CommandOrdinal);
     if Command in [tgDiff, tgPreviousDiff, tgBlame, tgResolve] then
-      TSmartGitInsightTortoiseGit.RunForActiveFile(Command)
+      TGit4DTortoiseGit.RunForActiveFile(Command)
     else
-      TSmartGitInsightTortoiseGit.RunForActiveRepository(Command);
+      TGit4DTortoiseGit.RunForActiveRepository(Command);
   except
     on E: Exception do
       MessageDlg(E.Message, mtError, [mbOK], 0);
   end;
 end;
 
-procedure TSmartGitInsightProjectMenuNotifier.ProjectTortoiseSvnClick(Sender: TObject);
+procedure TGit4DProjectMenuNotifier.ProjectTortoiseSvnClick(Sender: TObject);
 var
   Command: TTortoiseSvnCommand;
   CommandOrdinal: Integer;
@@ -648,16 +659,16 @@ begin
 
     Command := TTortoiseSvnCommand(CommandOrdinal);
     if Command in [svnDiff, svnPreviousDiff, svnBlame, svnResolved] then
-      TSmartGitInsightTortoiseSVN.RunForActiveFile(Command)
+      TGit4DTortoiseSVN.RunForActiveFile(Command)
     else
-      TSmartGitInsightTortoiseSVN.RunForActiveRepository(Command);
+      TGit4DTortoiseSVN.RunForActiveRepository(Command);
   except
     on E: Exception do
       MessageDlg(E.Message, mtError, [mbOK], 0);
   end;
 end;
 
-constructor TSmartGitInsightWizard.Create;
+constructor TGit4DWizard.Create;
 begin
   inherited Create;
   FActionList := TActionList.Create(nil);
@@ -679,7 +690,7 @@ begin
   end;
 end;
 
-destructor TSmartGitInsightWizard.Destroy;
+destructor TGit4DWizard.Destroy;
 begin
   UninstallEditorLocalMenu;
   if FProjectMenuNotifierIndex >= 0 then
@@ -698,48 +709,48 @@ begin
   inherited Destroy;
 end;
 
-procedure TSmartGitInsightWizard.AfterSave;
+procedure TGit4DWizard.AfterSave;
 begin
 end;
 
-procedure TSmartGitInsightWizard.BeforeSave;
+procedure TGit4DWizard.BeforeSave;
 begin
 end;
 
-procedure TSmartGitInsightWizard.Destroyed;
+procedure TGit4DWizard.Destroyed;
 begin
 end;
 
-procedure TSmartGitInsightWizard.Modified;
+procedure TGit4DWizard.Modified;
 begin
 end;
 
-function TSmartGitInsightWizard.GetIDString: string;
+function TGit4DWizard.GetIDString: string;
 begin
-  Result := SGIWizardID;
+  Result := G4DWizardID;
 end;
 
-function TSmartGitInsightWizard.GetName: string;
+function TGit4DWizard.GetName: string;
 begin
-  Result := SGIProductName;
+  Result := G4DProductName;
 end;
 
-function TSmartGitInsightWizard.GetState: TWizardState;
+function TGit4DWizard.GetState: TWizardState;
 begin
   Result := [wsEnabled];
 end;
 
-procedure TSmartGitInsightWizard.Execute;
+procedure TGit4DWizard.Execute;
 begin
   BrowseRepository(nil);
 end;
 
-function TSmartGitInsightWizard.GetMenuText: string;
+function TGit4DWizard.GetMenuText: string;
 begin
-  Result := SGIProductName;
+  Result := G4DProductName;
 end;
 
-function TSmartGitInsightWizard.CreateActionItem(const Caption: string; const Handler: TNotifyEvent;
+function TGit4DWizard.CreateActionItem(const Caption: string; const Handler: TNotifyEvent;
   const Shortcut: TShortCut): TMenuItem;
 begin
   Result := TMenuItem.Create(nil);
@@ -748,18 +759,18 @@ begin
   Result.OnClick := Handler;
 end;
 
-function TSmartGitInsightWizard.CreateSeparator: TMenuItem;
+function TGit4DWizard.CreateSeparator: TMenuItem;
 begin
   Result := TMenuItem.Create(nil);
   Result.Caption := '-';
 end;
 
-procedure TSmartGitInsightWizard.EditorPopupHookTimer(Sender: TObject);
+procedure TGit4DWizard.EditorPopupHookTimer(Sender: TObject);
 begin
   HookEditorPopups;
 end;
 
-procedure TSmartGitInsightWizard.ClearLegacyEditorLocalMenuRegistrations;
+procedure TGit4DWizard.ClearLegacyEditorLocalMenuRegistrations;
 var
   EditorLocalMenu: INTAEditorLocalMenu;
   EditorServices: IOTAEditorServices;
@@ -771,11 +782,11 @@ begin
       if EditorLocalMenu <> nil then
       begin
         try
-          EditorLocalMenu.UnregisterActionList(SGILegacyEditorActionListCategory);
+          EditorLocalMenu.UnregisterActionList(G4DLegacyEditorActionListCategory);
         except
         end;
         try
-          EditorLocalMenu.UnregisterActionList(SGILegacyEditorActionListCategory2);
+          EditorLocalMenu.UnregisterActionList(G4DLegacyEditorActionListCategory2);
         except
         end;
       end;
@@ -784,7 +795,7 @@ begin
   end;
 end;
 
-procedure TSmartGitInsightWizard.HookEditorPopups;
+procedure TGit4DWizard.HookEditorPopups;
 var
   ComponentIndex: Integer;
   EditWindow: INTAEditWindow;
@@ -793,7 +804,7 @@ var
   ServiceIndex: Integer;
   Services: INTAEditorServices;
 begin
-  if not SmartGitInsightSettings.EditorPopupEnabled then
+  if not Git4DSettings.EditorPopupEnabled then
     Exit;
 
   if FEditorPopupHooks = nil then
@@ -816,15 +827,16 @@ begin
       if Form.Components[ComponentIndex] is TPopupMenu then
       begin
         PopupMenu := TPopupMenu(Form.Components[ComponentIndex]);
-        HookPopupMenu(PopupMenu);
+        if IsCandidateEditorPopupMenu(PopupMenu) then
+          HookPopupMenu(PopupMenu);
       end;
   end;
 end;
 
-procedure TSmartGitInsightWizard.HookPopupMenu(PopupMenu: TPopupMenu);
+procedure TGit4DWizard.HookPopupMenu(PopupMenu: TPopupMenu);
 var
   Index: Integer;
-  Hook: TSmartGitInsightEditorPopupHook;
+  Hook: TGit4DEditorPopupHook;
 begin
   if PopupMenu = nil then
     Exit;
@@ -834,7 +846,7 @@ begin
 
   for Index := FEditorPopupHooks.Count - 1 downto 0 do
   begin
-    Hook := TSmartGitInsightEditorPopupHook(FEditorPopupHooks[Index]);
+    Hook := TGit4DEditorPopupHook(FEditorPopupHooks[Index]);
     if Hook.PopupMenu = nil then
     begin
       Hook.Free;
@@ -847,51 +859,71 @@ begin
     end;
   end;
 
-  FEditorPopupHooks.Add(TSmartGitInsightEditorPopupHook.Create(Self, PopupMenu));
+  FEditorPopupHooks.Add(TGit4DEditorPopupHook.Create(Self, PopupMenu));
 end;
 
-procedure TSmartGitInsightWizard.AddAction(const Caption: string; const Handler: TNotifyEvent;
+function TGit4DWizard.IsCandidateEditorPopupMenu(PopupMenu: TPopupMenu): Boolean;
+var
+  OwnerName: string;
+begin
+  Result := False;
+  if PopupMenu = nil then
+    Exit;
+
+  if SameText(PopupMenu.Name, 'EditorLocalMenu') or
+    ContainsText(PopupMenu.Name, 'Editor') then
+    Exit(True);
+
+  if PopupMenu.Owner is TComponent then
+    OwnerName := TComponent(PopupMenu.Owner).Name
+  else
+    OwnerName := '';
+
+  Result := ContainsText(OwnerName, 'Editor') or IsGit4DPopupMenu(PopupMenu);
+end;
+
+procedure TGit4DWizard.AddAction(const Caption: string; const Handler: TNotifyEvent;
   const Shortcut: TShortCut);
 begin
   FMainMenu.Add(CreateActionItem(Caption, Handler, Shortcut));
 end;
 
-procedure TSmartGitInsightWizard.AddTortoiseGitCommand(Menu: TMenuItem; Command: TTortoiseGitCommand);
+procedure TGit4DWizard.AddTortoiseGitCommand(Menu: TMenuItem; Command: TTortoiseGitCommand);
 var
   Item: TMenuItem;
 begin
-  Item := CreateActionItem(TSmartGitInsightTortoiseGit.CommandDisplayName(Command), TortoiseGitCommand);
+  Item := CreateActionItem(TGit4DTortoiseGit.CommandDisplayName(Command), TortoiseGitCommand);
   Item.Tag := Ord(Command);
   Item.HelpContext := Ord(Command);
   Menu.Add(Item);
 end;
 
-procedure TSmartGitInsightWizard.AddTortoiseSvnCommand(Menu: TMenuItem; Command: TTortoiseSvnCommand);
+procedure TGit4DWizard.AddTortoiseSvnCommand(Menu: TMenuItem; Command: TTortoiseSvnCommand);
 var
   Item: TMenuItem;
 begin
-  Item := CreateActionItem(TSmartGitInsightTortoiseSVN.CommandDisplayName(Command), TortoiseSvnCommand);
+  Item := CreateActionItem(TGit4DTortoiseSVN.CommandDisplayName(Command), TortoiseSvnCommand);
   Item.Tag := Ord(Command);
   Item.HelpContext := Ord(Command);
   Menu.Add(Item);
 end;
 
-procedure TSmartGitInsightWizard.AddGitExtensionsCommand(Menu: TMenuItem; Command: TGitExtensionsCommand);
+procedure TGit4DWizard.AddGitExtensionsCommand(Menu: TMenuItem; Command: TGitExtensionsCommand);
 var
   Item: TMenuItem;
 begin
-  Item := CreateActionItem(TSmartGitInsightGitExtensions.CommandDisplayName(Command), GitExtensionsCommand);
+  Item := CreateActionItem(TGit4DGitExtensions.CommandDisplayName(Command), GitExtensionsCommand);
   Item.Tag := Ord(Command);
   Item.HelpContext := Ord(Command);
   Menu.Add(Item);
 end;
 
-procedure TSmartGitInsightWizard.AddSeparator;
+procedure TGit4DWizard.AddSeparator;
 begin
   FMainMenu.Add(CreateSeparator);
 end;
 
-procedure TSmartGitInsightWizard.AddSubMenu(const Caption: string; const Items: array of TMenuItem);
+procedure TGit4DWizard.AddSubMenu(const Caption: string; const Items: array of TMenuItem);
 var
   Menu: TMenuItem;
   Index: Integer;
@@ -903,17 +935,17 @@ begin
   FMainMenu.Add(Menu);
 end;
 
-procedure TSmartGitInsightWizard.AddGitCommand(Menu: TMenuItem; const Caption: string; const Handler: TNotifyEvent);
+procedure TGit4DWizard.AddGitCommand(Menu: TMenuItem; const Caption: string; const Handler: TNotifyEvent);
 begin
   Menu.Add(CreateActionItem(Caption, Handler));
 end;
 
-function TSmartGitInsightWizard.AddTortoiseSvnSubMenu(ParentMenu: TMenuItem): Boolean;
+function TGit4DWizard.AddTortoiseSvnSubMenu(ParentMenu: TMenuItem): Boolean;
 var
   TortoiseSvnMenu: TMenuItem;
 begin
   Result := False;
-  if not SmartGitInsightSettings.TortoiseSvnEnabled then
+  if not Git4DSettings.TortoiseSvnEnabled then
     Exit;
 
   TortoiseSvnMenu := TMenuItem.Create(ParentMenu);
@@ -948,12 +980,12 @@ begin
   Result := True;
 end;
 
-function TSmartGitInsightWizard.AddGitExtensionsSubMenu(ParentMenu: TMenuItem): Boolean;
+function TGit4DWizard.AddGitExtensionsSubMenu(ParentMenu: TMenuItem): Boolean;
 var
   GitExtensionsMenu: TMenuItem;
 begin
   Result := False;
-  if not SmartGitInsightSettings.GitExtensionsEnabled then
+  if not Git4DSettings.GitExtensionsEnabled then
     Exit;
 
   GitExtensionsMenu := TMenuItem.Create(ParentMenu);
@@ -1008,7 +1040,7 @@ begin
   Result := True;
 end;
 
-function TSmartGitInsightWizard.AddGitSubMenu(ParentMenu: TMenuItem): TMenuItem;
+function TGit4DWizard.AddGitSubMenu(ParentMenu: TMenuItem): TMenuItem;
 begin
   Result := TMenuItem.Create(ParentMenu);
   Result.Caption := 'Git';
@@ -1042,9 +1074,9 @@ begin
   ParentMenu.Add(Result);
 end;
 
-procedure TSmartGitInsightWizard.InstallEditorLocalMenu;
+procedure TGit4DWizard.InstallEditorLocalMenu;
 begin
-  if FEditorMenuInstalled or not SmartGitInsightSettings.EditorPopupEnabled then
+  if FEditorMenuInstalled or not Git4DSettings.EditorPopupEnabled then
     Exit;
 
   if FEditorPopupHooks = nil then
@@ -1056,7 +1088,7 @@ begin
   begin
     FEditorPopupHookTimer := TTimer.Create(nil);
     FEditorPopupHookTimer.Enabled := False;
-    FEditorPopupHookTimer.Interval := 1000;
+    FEditorPopupHookTimer.Interval := 3000;
     FEditorPopupHookTimer.OnTimer := EditorPopupHookTimer;
   end;
 
@@ -1064,7 +1096,7 @@ begin
   FEditorMenuInstalled := True;
 end;
 
-procedure TSmartGitInsightWizard.UninstallEditorLocalMenu;
+procedure TGit4DWizard.UninstallEditorLocalMenu;
 begin
   if (not FEditorMenuInstalled) and (FEditorPopupHookTimer = nil) and (FEditorPopupHooks = nil) then
     Exit;
@@ -1086,8 +1118,10 @@ begin
   FEditorMenuInstalled := False;
 end;
 
-procedure TSmartGitInsightWizard.InstallMainMenu;
+procedure TGit4DWizard.InstallMainMenu;
 var
+  ExistingMenu: TMenuItem;
+  Index: Integer;
   MainMenu: TMainMenu;
   ToolsMenu: TMenuItem;
 begin
@@ -1117,9 +1151,24 @@ begin
   if FMainMenuRetryTimer <> nil then
     FMainMenuRetryTimer.Enabled := False;
 
+  ExistingMenu := nil;
+  for Index := 0 to ToolsMenu.Count - 1 do
+    if SameText(ToolsMenu.Items[Index].Name, G4DMainMenuName) or
+      SameText(NormalizedCaption(ToolsMenu.Items[Index].Caption), G4DProductName) then
+    begin
+      ExistingMenu := ToolsMenu.Items[Index];
+      Break;
+    end;
+
+  if ExistingMenu <> nil then
+  begin
+    ToolsMenu.Remove(ExistingMenu);
+    ExistingMenu.Free;
+  end;
+
   FMainMenu := TMenuItem.Create(nil);
-  FMainMenu.Name := SGIMainMenuName;
-  FMainMenu.Caption := '&Smart GitInsight';
+  FMainMenu.Name := G4DMainMenuName;
+  FMainMenu.Caption := '&Git4D';
   FMainMenu.OnClick := MainMenuPopup;
 
   RebuildMainMenuItems;
@@ -1127,9 +1176,9 @@ begin
   FMainMenuInstalled := True;
 end;
 
-procedure TSmartGitInsightWizard.ScheduleMainMenuRetry;
+procedure TGit4DWizard.ScheduleMainMenuRetry;
 begin
-  if FMainMenuInstalled or (FMainMenuRetryCount >= SGIMainMenuRetryLimit) then
+  if FMainMenuInstalled or (FMainMenuRetryCount >= G4DMainMenuRetryLimit) then
     Exit;
 
   if FMainMenuRetryTimer = nil then
@@ -1143,7 +1192,7 @@ begin
   FMainMenuRetryTimer.Enabled := True;
 end;
 
-procedure TSmartGitInsightWizard.MainMenuRetryTimer(Sender: TObject);
+procedure TGit4DWizard.MainMenuRetryTimer(Sender: TObject);
 begin
   if FMainMenuRetryTimer <> nil then
     FMainMenuRetryTimer.Enabled := False;
@@ -1158,7 +1207,7 @@ begin
     ScheduleMainMenuRetry;
 end;
 
-procedure TSmartGitInsightWizard.RebuildMainMenuItems;
+procedure TGit4DWizard.RebuildMainMenuItems;
 var
   ExternalMenuAdded: Boolean;
 begin
@@ -1181,7 +1230,7 @@ begin
   AddAction('&About', ShowAbout);
 end;
 
-function TSmartGitInsightWizard.IsSmartGitInsightPopupMenu(PopupMenu: TPopupMenu): Boolean;
+function TGit4DWizard.IsGit4DPopupMenu(PopupMenu: TPopupMenu): Boolean;
 var
   CaptionText: string;
   Index: Integer;
@@ -1211,7 +1260,7 @@ begin
   end;
 end;
 
-procedure TSmartGitInsightWizard.RemoveSmartGitInsightPopupItem(PopupMenu: TPopupMenu);
+procedure TGit4DWizard.RemoveGit4DPopupItem(PopupMenu: TPopupMenu);
 var
   Index: Integer;
   Item: TMenuItem;
@@ -1222,8 +1271,8 @@ begin
   for Index := PopupMenu.Items.Count - 1 downto 0 do
   begin
     Item := PopupMenu.Items[Index];
-    if SameText(Item.Name, SGIEditorPopupMenuName) or
-      SameText(NormalizedCaption(Item.Caption), SGIProductName) then
+    if SameText(Item.Name, G4DEditorPopupMenuName) or
+      SameText(NormalizedCaption(Item.Caption), G4DProductName) then
     begin
       PopupMenu.Items.Remove(Item);
       Item.Free;
@@ -1231,7 +1280,7 @@ begin
   end;
 end;
 
-procedure TSmartGitInsightWizard.RebuildEditorPopupMenu(PopupMenu: TPopupMenu);
+procedure TGit4DWizard.RebuildEditorPopupMenu(PopupMenu: TPopupMenu);
 var
   ExternalMenuAdded: Boolean;
   FoundSmartCodeInsight: Boolean;
@@ -1243,10 +1292,10 @@ begin
   if PopupMenu = nil then
     Exit;
 
-  RemoveSmartGitInsightPopupItem(PopupMenu);
-  if not IsSmartGitInsightPopupMenu(PopupMenu) then
+  RemoveGit4DPopupItem(PopupMenu);
+  if not IsGit4DPopupMenu(PopupMenu) then
     Exit;
-  if not SmartGitInsightSettings.EditorPopupEnabled then
+  if not Git4DSettings.EditorPopupEnabled then
     Exit;
 
   FoundSmartCodeInsight := False;
@@ -1267,8 +1316,8 @@ begin
     InsertIndex := PopupMenu.Items.Count;
 
   RootMenu := TMenuItem.Create(PopupMenu);
-  RootMenu.Name := SGIEditorPopupMenuName;
-  RootMenu.Caption := SGIProductName;
+  RootMenu.Name := G4DEditorPopupMenuName;
+  RootMenu.Caption := G4DProductName;
   ExternalMenuAdded := AddTortoiseSvnSubMenu(RootMenu);
   if AddTortoiseGitSubMenu(RootMenu) then
     ExternalMenuAdded := True;
@@ -1284,12 +1333,12 @@ begin
   PopupMenu.Items.Insert(InsertIndex, RootMenu);
 end;
 
-procedure TSmartGitInsightWizard.MainMenuPopup(Sender: TObject);
+procedure TGit4DWizard.MainMenuPopup(Sender: TObject);
 begin
   RebuildMainMenuItems;
 end;
 
-function TSmartGitInsightWizard.FindToolsMenu(MainMenu: TMainMenu): TMenuItem;
+function TGit4DWizard.FindToolsMenu(MainMenu: TMainMenu): TMenuItem;
 var
   Index: Integer;
   CaptionText: string;
@@ -1306,7 +1355,7 @@ begin
   end;
 end;
 
-procedure TSmartGitInsightWizard.InstallProjectManagerMenu;
+procedure TGit4DWizard.InstallProjectManagerMenu;
 var
   ProjectManager: IOTAProjectManager;
 begin
@@ -1315,18 +1364,23 @@ begin
 
   if Supports(BorlandIDEServices, IOTAProjectManager, ProjectManager) then
   begin
-    FProjectMenuNotifier := TSmartGitInsightProjectMenuNotifier.Create;
-    FProjectMenuNotifierIndex := ProjectManager.AddMenuCreatorNotifier(FProjectMenuNotifier);
-    FProjectMenuUsesLegacyNotifier := True;
+    FProjectMenuNotifier := TGit4DProjectMenuNotifier.Create;
+    try
+      FProjectMenuNotifierIndex := ProjectManager.AddMenuItemCreatorNotifier(FProjectMenuNotifier);
+      FProjectMenuUsesLegacyNotifier := False;
+    except
+      FProjectMenuNotifierIndex := ProjectManager.AddMenuCreatorNotifier(FProjectMenuNotifier);
+      FProjectMenuUsesLegacyNotifier := True;
+    end;
   end;
 end;
 
-function TSmartGitInsightWizard.AddTortoiseGitSubMenu(ParentMenu: TMenuItem): Boolean;
+function TGit4DWizard.AddTortoiseGitSubMenu(ParentMenu: TMenuItem): Boolean;
 var
   TortoiseMenu: TMenuItem;
 begin
   Result := False;
-  if not SmartGitInsightSettings.TortoiseGitEnabled then
+  if not Git4DSettings.TortoiseGitEnabled then
     Exit;
 
   TortoiseMenu := TMenuItem.Create(ParentMenu);
@@ -1368,147 +1422,147 @@ begin
   Result := True;
 end;
 
-procedure TSmartGitInsightWizard.BrowseRepository(Sender: TObject);
+procedure TGit4DWizard.BrowseRepository(Sender: TObject);
 begin
-  TSmartGitInsightGit.RunGitForActiveRepository('log --graph --decorate --oneline --all --date-order -n 120');
+  TGit4DGit.RunGitForActiveRepository('log --graph --decorate --oneline --all --date-order -n 120');
 end;
 
-procedure TSmartGitInsightWizard.ShowStatus(Sender: TObject);
+procedure TGit4DWizard.ShowStatus(Sender: TObject);
 begin
-  TSmartGitInsightGit.RunGitForActiveRepository('status --short --branch');
+  TGit4DGit.RunGitForActiveRepository('status --short --branch');
 end;
 
-procedure TSmartGitInsightWizard.Commit(Sender: TObject);
+procedure TGit4DWizard.Commit(Sender: TObject);
 begin
-  TSmartGitInsightGit.RunGitForActiveRepository('status --short && git add --patch && git commit');
+  TGit4DGit.RunGitForActiveRepository('status --short && git add --patch && git commit');
 end;
 
-procedure TSmartGitInsightWizard.Fetch(Sender: TObject);
+procedure TGit4DWizard.Fetch(Sender: TObject);
 begin
-  TSmartGitInsightGit.RunGitForActiveRepository('fetch --all --prune');
+  TGit4DGit.RunGitForActiveRepository('fetch --all --prune');
 end;
 
-procedure TSmartGitInsightWizard.Pull(Sender: TObject);
+procedure TGit4DWizard.Pull(Sender: TObject);
 begin
-  TSmartGitInsightGit.RunGitForActiveRepository('pull --stat');
+  TGit4DGit.RunGitForActiveRepository('pull --stat');
 end;
 
-procedure TSmartGitInsightWizard.Push(Sender: TObject);
+procedure TGit4DWizard.Push(Sender: TObject);
 begin
-  TSmartGitInsightGit.RunGitForActiveRepository('push');
+  TGit4DGit.RunGitForActiveRepository('push');
 end;
 
-procedure TSmartGitInsightWizard.Stash(Sender: TObject);
+procedure TGit4DWizard.Stash(Sender: TObject);
 begin
-  TSmartGitInsightGit.RunGitForActiveRepository('stash --include-untracked');
+  TGit4DGit.RunGitForActiveRepository('stash --include-untracked');
 end;
 
-procedure TSmartGitInsightWizard.CheckoutBranch(Sender: TObject);
+procedure TGit4DWizard.CheckoutBranch(Sender: TObject);
 var
   BranchName: string;
 begin
-  if InputQuery(SGIProductName, 'Branch to checkout', BranchName) then
-    TSmartGitInsightGit.RunGitForActiveRepository('checkout ' + BranchName);
+  if InputQuery(G4DProductName, 'Branch to checkout', BranchName) then
+    TGit4DGit.RunGitForActiveRepository('checkout ' + BranchName);
 end;
 
-procedure TSmartGitInsightWizard.CreateBranch(Sender: TObject);
+procedure TGit4DWizard.CreateBranch(Sender: TObject);
 var
   BranchName: string;
 begin
-  if InputQuery(SGIProductName, 'New branch name', BranchName) then
-    TSmartGitInsightGit.RunGitForActiveRepository('checkout -b ' + BranchName);
+  if InputQuery(G4DProductName, 'New branch name', BranchName) then
+    TGit4DGit.RunGitForActiveRepository('checkout -b ' + BranchName);
 end;
 
-procedure TSmartGitInsightWizard.MergeBranch(Sender: TObject);
+procedure TGit4DWizard.MergeBranch(Sender: TObject);
 var
   BranchName: string;
 begin
-  if InputQuery(SGIProductName, 'Branch to merge', BranchName) then
-    TSmartGitInsightGit.RunGitForActiveRepository('merge ' + BranchName);
+  if InputQuery(G4DProductName, 'Branch to merge', BranchName) then
+    TGit4DGit.RunGitForActiveRepository('merge ' + BranchName);
 end;
 
-procedure TSmartGitInsightWizard.RebaseBranch(Sender: TObject);
+procedure TGit4DWizard.RebaseBranch(Sender: TObject);
 var
   BranchName: string;
 begin
-  if InputQuery(SGIProductName, 'Branch to rebase onto', BranchName) then
-    TSmartGitInsightGit.RunGitForActiveRepository('rebase ' + BranchName);
+  if InputQuery(G4DProductName, 'Branch to rebase onto', BranchName) then
+    TGit4DGit.RunGitForActiveRepository('rebase ' + BranchName);
 end;
 
-procedure TSmartGitInsightWizard.CherryPick(Sender: TObject);
+procedure TGit4DWizard.CherryPick(Sender: TObject);
 var
   CommitHash: string;
 begin
-  if InputQuery(SGIProductName, 'Commit to cherry-pick', CommitHash) then
-    TSmartGitInsightGit.RunGitForActiveRepository('cherry-pick ' + CommitHash);
+  if InputQuery(G4DProductName, 'Commit to cherry-pick', CommitHash) then
+    TGit4DGit.RunGitForActiveRepository('cherry-pick ' + CommitHash);
 end;
 
-procedure TSmartGitInsightWizard.ApplyPatch(Sender: TObject);
+procedure TGit4DWizard.ApplyPatch(Sender: TObject);
 begin
-  TSmartGitInsightGit.RunGitForActiveRepository('am');
+  TGit4DGit.RunGitForActiveRepository('am');
 end;
 
-procedure TSmartGitInsightWizard.FormatPatch(Sender: TObject);
+procedure TGit4DWizard.FormatPatch(Sender: TObject);
 begin
-  TSmartGitInsightGit.RunGitForActiveRepository('format-patch -1 HEAD');
+  TGit4DGit.RunGitForActiveRepository('format-patch -1 HEAD');
 end;
 
-procedure TSmartGitInsightWizard.ManageRemotes(Sender: TObject);
+procedure TGit4DWizard.ManageRemotes(Sender: TObject);
 begin
-  TSmartGitInsightGit.RunGitForActiveRepository('remote -v');
+  TGit4DGit.RunGitForActiveRepository('remote -v');
 end;
 
-procedure TSmartGitInsightWizard.EditGitIgnore(Sender: TObject);
+procedure TGit4DWizard.EditGitIgnore(Sender: TObject);
 begin
-  TSmartGitInsightGit.RunGitForActiveRepository('status --ignored --short');
+  TGit4DGit.RunGitForActiveRepository('status --ignored --short');
 end;
 
-procedure TSmartGitInsightWizard.DiffCurrentFile(Sender: TObject);
+procedure TGit4DWizard.DiffCurrentFile(Sender: TObject);
 begin
-  TSmartGitInsightGit.DiffActiveFile;
+  TGit4DGit.DiffActiveFile;
 end;
 
-procedure TSmartGitInsightWizard.FileHistory(Sender: TObject);
+procedure TGit4DWizard.FileHistory(Sender: TObject);
 begin
-  TSmartGitInsightGit.FileHistory;
+  TGit4DGit.FileHistory;
 end;
 
-procedure TSmartGitInsightWizard.BlameCurrentFile(Sender: TObject);
+procedure TGit4DWizard.BlameCurrentFile(Sender: TObject);
 begin
-  TSmartGitInsightGit.BlameActiveFile;
+  TGit4DGit.BlameActiveFile;
 end;
 
-procedure TSmartGitInsightWizard.StageCurrentFile(Sender: TObject);
+procedure TGit4DWizard.StageCurrentFile(Sender: TObject);
 begin
-  TSmartGitInsightGit.StageActiveFile;
+  TGit4DGit.StageActiveFile;
 end;
 
-procedure TSmartGitInsightWizard.ResetCurrentFile(Sender: TObject);
+procedure TGit4DWizard.ResetCurrentFile(Sender: TObject);
 begin
-  TSmartGitInsightGit.ResetActiveFile;
+  TGit4DGit.ResetActiveFile;
 end;
 
-procedure TSmartGitInsightWizard.OpenTerminal(Sender: TObject);
+procedure TGit4DWizard.OpenTerminal(Sender: TObject);
 begin
   try
-    TSmartGitInsightGit.OpenTerminal(DiscoverActiveRepository);
+    TGit4DGit.OpenTerminal(DiscoverActiveRepository);
   except
     on E: Exception do
       MessageDlg(E.Message, mtInformation, [mbOK], 0);
   end;
 end;
 
-procedure TSmartGitInsightWizard.ShowSettings(Sender: TObject);
+procedure TGit4DWizard.ShowSettings(Sender: TObject);
 begin
-  OpenSmartGitInsightOptions;
+  OpenGit4DOptions;
 end;
 
-procedure TSmartGitInsightWizard.ShowAbout(Sender: TObject);
+procedure TGit4DWizard.ShowAbout(Sender: TObject);
 begin
-  ShowSmartGitInsightAboutDialog;
+  ShowGit4DAboutDialog;
 end;
 
-procedure TSmartGitInsightWizard.GitExtensionsCommand(Sender: TObject);
+procedure TGit4DWizard.GitExtensionsCommand(Sender: TObject);
 var
   Command: TGitExtensionsCommand;
   CommandOrdinal: Integer;
@@ -1527,16 +1581,16 @@ begin
 
     Command := TGitExtensionsCommand(CommandOrdinal);
     if Command in [geAdd, geApply, geBlame, geDiffTool, geFileEditor, geFileHistory, geRevert, geViewPatch] then
-      TSmartGitInsightGitExtensions.RunForActiveFile(Command)
+      TGit4DGitExtensions.RunForActiveFile(Command)
     else
-      TSmartGitInsightGitExtensions.RunForActiveRepository(Command);
+      TGit4DGitExtensions.RunForActiveRepository(Command);
   except
     on E: Exception do
       MessageDlg(E.Message, mtError, [mbOK], 0);
   end;
 end;
 
-procedure TSmartGitInsightWizard.TortoiseSvnCommand(Sender: TObject);
+procedure TGit4DWizard.TortoiseSvnCommand(Sender: TObject);
 var
   Command: TTortoiseSvnCommand;
   CommandOrdinal: Integer;
@@ -1555,36 +1609,36 @@ begin
 
     Command := TTortoiseSvnCommand(CommandOrdinal);
     if Command in [svnDiff, svnPreviousDiff, svnBlame, svnResolved] then
-      TSmartGitInsightTortoiseSVN.RunForActiveFile(Command)
+      TGit4DTortoiseSVN.RunForActiveFile(Command)
     else
-      TSmartGitInsightTortoiseSVN.RunForActiveRepository(Command);
+      TGit4DTortoiseSVN.RunForActiveRepository(Command);
   except
     on E: Exception do
       MessageDlg(E.Message, mtError, [mbOK], 0);
   end;
 end;
 
-procedure TSmartGitInsightWizard.UpdateEditorAction(Sender: TObject);
+procedure TGit4DWizard.UpdateEditorAction(Sender: TObject);
 begin
   if Sender is TCustomAction then
   begin
-    (Sender as TCustomAction).Visible := SmartGitInsightSettings.EditorPopupEnabled;
-    (Sender as TCustomAction).Enabled := SmartGitInsightSettings.EditorPopupEnabled;
+    (Sender as TCustomAction).Visible := Git4DSettings.EditorPopupEnabled;
+    (Sender as TCustomAction).Enabled := Git4DSettings.EditorPopupEnabled;
   end;
 end;
 
-procedure TSmartGitInsightWizard.UpdateEditorTortoiseGitAction(Sender: TObject);
+procedure TGit4DWizard.UpdateEditorTortoiseGitAction(Sender: TObject);
 begin
   if Sender is TCustomAction then
   begin
-    (Sender as TCustomAction).Visible := SmartGitInsightSettings.EditorPopupEnabled and
-      SmartGitInsightSettings.TortoiseGitEnabled;
-    (Sender as TCustomAction).Enabled := SmartGitInsightSettings.EditorPopupEnabled and
-      SmartGitInsightSettings.TortoiseGitEnabled;
+    (Sender as TCustomAction).Visible := Git4DSettings.EditorPopupEnabled and
+      Git4DSettings.TortoiseGitEnabled;
+    (Sender as TCustomAction).Enabled := Git4DSettings.EditorPopupEnabled and
+      Git4DSettings.TortoiseGitEnabled;
   end;
 end;
 
-procedure TSmartGitInsightWizard.TortoiseGitCommand(Sender: TObject);
+procedure TGit4DWizard.TortoiseGitCommand(Sender: TObject);
 var
   Command: TTortoiseGitCommand;
   CommandOrdinal: Integer;
@@ -1603,9 +1657,9 @@ begin
 
     Command := TTortoiseGitCommand(CommandOrdinal);
     if Command in [tgDiff, tgPreviousDiff, tgBlame, tgResolve] then
-      TSmartGitInsightTortoiseGit.RunForActiveFile(Command)
+      TGit4DTortoiseGit.RunForActiveFile(Command)
     else
-      TSmartGitInsightTortoiseGit.RunForActiveRepository(Command);
+      TGit4DTortoiseGit.RunForActiveRepository(Command);
   except
     on E: Exception do
       MessageDlg(E.Message, mtError, [mbOK], 0);
@@ -1613,3 +1667,4 @@ begin
 end;
 
 end.
+

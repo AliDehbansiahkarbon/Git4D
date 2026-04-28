@@ -1,10 +1,10 @@
-﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <PropertyGroup>
         <ProjectGuid>{F8EC0514-D073-4EA8-95A4-8AD195648B3B}</ProjectGuid>
-        <MainSource>SmartGitInsightRAD.dpk</MainSource>
+        <MainSource>Git4DRAD.dpk</MainSource>
         <Base>True</Base>
         <Config Condition="'$(Config)'==''">Debug</Config>
-        <ProjectName Condition="'$(ProjectName)'==''">SmartGitInsightRAD</ProjectName>
+        <ProjectName Condition="'$(ProjectName)'==''">Git4DRAD</ProjectName>
         <TargetedPlatforms>1741953</TargetedPlatforms>
         <AppType>Package</AppType>
         <FrameworkType>VCL</FrameworkType>
@@ -53,11 +53,11 @@
         <DCC_ImageBase>00400000</DCC_ImageBase>
         <GenDll>true</GenDll>
         <GenPackage>true</GenPackage>
-        <SanitizedProjectName>SmartGitInsightRAD</SanitizedProjectName>
+        <SanitizedProjectName>Git4DRAD</SanitizedProjectName>
         <DCC_DebugInformation>1</DCC_DebugInformation>
         <DCC_Optimize>false</DCC_Optimize>
         <DCC_GenerateStackFrames>true</DCC_GenerateStackFrames>
-        <DCC_Description>Smart GitInsight RAD Studio IDE integration</DCC_Description>
+        <DCC_Description>Git4D RAD Studio IDE integration</DCC_Description>
         <DesignOnlyPackage>true</DesignOnlyPackage>
         <DCC_Namespace>Vcl;Vcl.Imaging;Vcl.Touch;Vcl.Samples;Vcl.Shell;System;Xml;Data;Datasnap;Web;Soap;DUnitX.Loggers.GUI;$(DCC_Namespace)</DCC_Namespace>
         <VerInfo_Locale>1033</VerInfo_Locale>
@@ -101,17 +101,17 @@
         <DCCReference Include="rtl.dcp"/>
         <DCCReference Include="vcl.dcp"/>
         <DCCReference Include="designide.dcp"/>
-        <DCCReference Include="..\Source\SmartGitInsight.Register.pas"/>
-        <DCCReference Include="..\Source\SmartGitInsight.Constants.pas"/>
-        <DCCReference Include="..\Source\SmartGitInsight.Settings.pas"/>
-        <DCCReference Include="..\Source\SmartGitInsight.Repository.pas"/>
-        <DCCReference Include="..\Source\SmartGitInsight.Git.pas"/>
-        <DCCReference Include="..\Source\SmartGitInsight.GitExtensions.pas"/>
-        <DCCReference Include="..\Source\SmartGitInsight.TortoiseGit.pas"/>
-        <DCCReference Include="..\Source\SmartGitInsight.TortoiseSVN.pas"/>
-        <DCCReference Include="..\Source\SmartGitInsight.Dialogs.pas"/>
-        <DCCReference Include="..\Source\SmartGitInsight.Options.pas"/>
-        <DCCReference Include="..\Source\SmartGitInsight.Wizard.pas"/>
+        <DCCReference Include="..\Source\Git4D.Register.pas"/>
+        <DCCReference Include="..\Source\Git4D.Constants.pas"/>
+        <DCCReference Include="..\Source\Git4D.Settings.pas"/>
+        <DCCReference Include="..\Source\Git4D.Repository.pas"/>
+        <DCCReference Include="..\Source\Git4D.Git.pas"/>
+        <DCCReference Include="..\Source\Git4D.GitExtensions.pas"/>
+        <DCCReference Include="..\Source\Git4D.TortoiseGit.pas"/>
+        <DCCReference Include="..\Source\Git4D.TortoiseSVN.pas"/>
+        <DCCReference Include="..\Source\Git4D.Dialogs.pas"/>
+        <DCCReference Include="..\Source\Git4D.Options.pas"/>
+        <DCCReference Include="..\Source\Git4D.Wizard.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
@@ -130,7 +130,7 @@
         <BorlandProject>
             <Delphi.Personality>
                 <Source>
-                    <Source Name="MainSource">SmartGitInsightRAD.dpk</Source>
+                    <Source Name="MainSource">Git4DRAD.dpk</Source>
                 </Source>
             </Delphi.Personality>
             <Platforms>
@@ -153,3 +153,4 @@
     <Import Project="$(BDS)\Bin\CodeGear.Delphi.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Delphi.Targets')"/>
     <Import Project="$(APPDATA)\Embarcadero\$(BDSAPPDATABASEDIR)\$(PRODUCTVERSION)\UserTools.proj" Condition="Exists('$(APPDATA)\Embarcadero\$(BDSAPPDATABASEDIR)\$(PRODUCTVERSION)\UserTools.proj')"/>
 </Project>
+

@@ -1,9 +1,9 @@
-unit SmartGitInsight.TortoiseGit;
+unit Git4D.TortoiseGit;
 
 interface
 
 uses
-  SmartGitInsight.Repository;
+  Git4D.Repository;
 
 type
   TTortoiseGitCommand = (
@@ -41,14 +41,14 @@ type
     tgAbout
   );
 
-  TSmartGitInsightTortoiseGit = class
+  TGit4DTortoiseGit = class
   public
     class function DetectExecutable: string; static;
     class function EffectiveExecutable: string; static;
     class function IsAvailable: Boolean; static;
     class function IsEnabledAndAvailable: Boolean; static;
     class function CommandDisplayName(ACommand: TTortoiseGitCommand): string; static;
-    class procedure Run(ACommand: TTortoiseGitCommand; const Repository: TSmartGitInsightRepository); static;
+    class procedure Run(ACommand: TTortoiseGitCommand; const Repository: TGit4DRepository); static;
     class procedure RunForActiveRepository(ACommand: TTortoiseGitCommand); static;
     class procedure RunForActiveFile(ACommand: TTortoiseGitCommand); static;
   end;
@@ -60,7 +60,11 @@ uses
   System.Win.Registry,
   Vcl.Dialogs,
   Winapi.Windows,
-  SmartGitInsight.Settings;
+  Git4D.Settings;
+
+var
+  GDetectedExecutable: string;
+  GExecutableDetectionAttempted: Boolean;
 
 function Quote(const Value: string): string;
 begin
@@ -183,7 +187,7 @@ begin
   end;
 end;
 
-class function TSmartGitInsightTortoiseGit.DetectExecutable: string;
+class function TGit4DTortoiseGit.DetectExecutable: string;
 var
   DirectoryName: string;
 begin
@@ -214,31 +218,31 @@ begin
     Result := '';
 end;
 
-class function TSmartGitInsightTortoiseGit.EffectiveExecutable: string;
+class function TGit4DTortoiseGit.EffectiveExecutable: string;
 begin
-  Result := SmartGitInsightSettings.TortoiseGitExecutable;
-  if (Result = '') or not FileExists(Result) then
+  Result := Git4DSettings.TortoiseGitExecutable;
+  if (Result <> '') and FileExists(Result) then
+    Exit;
+
+  if not GExecutableDetectionAttempted then
   begin
-    Result := DetectExecutable;
-    if SmartGitInsightSettings.TortoiseGitExecutable = '' then
-    begin
-      SmartGitInsightSettings.TortoiseGitExecutable := Result;
-      SmartGitInsightSettings.Save;
-    end;
+    GDetectedExecutable := DetectExecutable;
+    GExecutableDetectionAttempted := True;
   end;
+  Result := GDetectedExecutable;
 end;
 
-class function TSmartGitInsightTortoiseGit.IsAvailable: Boolean;
+class function TGit4DTortoiseGit.IsAvailable: Boolean;
 begin
   Result := EffectiveExecutable <> '';
 end;
 
-class function TSmartGitInsightTortoiseGit.IsEnabledAndAvailable: Boolean;
+class function TGit4DTortoiseGit.IsEnabledAndAvailable: Boolean;
 begin
-  Result := SmartGitInsightSettings.TortoiseGitEnabled and IsAvailable;
+  Result := Git4DSettings.TortoiseGitEnabled and IsAvailable;
 end;
 
-class function TSmartGitInsightTortoiseGit.CommandDisplayName(ACommand: TTortoiseGitCommand): string;
+class function TGit4DTortoiseGit.CommandDisplayName(ACommand: TTortoiseGitCommand): string;
 begin
   case ACommand of
     tgFetch:
@@ -310,7 +314,7 @@ begin
   end;
 end;
 
-class procedure TSmartGitInsightTortoiseGit.Run(ACommand: TTortoiseGitCommand; const Repository: TSmartGitInsightRepository);
+class procedure TGit4DTortoiseGit.Run(ACommand: TTortoiseGitCommand; const Repository: TGit4DRepository);
 var
   CommandLine: string;
   DirectoryName: string;
@@ -324,7 +328,7 @@ begin
   ExecutableName := EffectiveExecutable;
   if ExecutableName = '' then
   begin
-    MessageDlg('TortoiseGitProc.exe was not found. Configure it in Tools > Options > Third Party > Smart GitInsight.',
+    MessageDlg('TortoiseGitProc.exe was not found. Configure it in Tools > Options > Third Party > Git4D.',
       mtInformation, [mbOK], 0);
     Exit;
   end;
@@ -381,14 +385,14 @@ begin
   end;
 end;
 
-class procedure TSmartGitInsightTortoiseGit.RunForActiveRepository(ACommand: TTortoiseGitCommand);
+class procedure TGit4DTortoiseGit.RunForActiveRepository(ACommand: TTortoiseGitCommand);
 begin
   Run(ACommand, DiscoverActiveRepository);
 end;
 
-class procedure TSmartGitInsightTortoiseGit.RunForActiveFile(ACommand: TTortoiseGitCommand);
+class procedure TGit4DTortoiseGit.RunForActiveFile(ACommand: TTortoiseGitCommand);
 var
-  Repository: TSmartGitInsightRepository;
+  Repository: TGit4DRepository;
 begin
   Repository := DiscoverActiveRepository;
   if Repository.ActiveFileName = '' then
@@ -398,3 +402,4 @@ begin
 end;
 
 end.
+

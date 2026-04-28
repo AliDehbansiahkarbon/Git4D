@@ -1,28 +1,27 @@
-unit SmartGitInsight.Repository;
+unit Git4D.Repository;
 
 interface
 
 type
-  TSmartGitInsightRepository = record
+  TGit4DRepository = record
     RootPath: string;
     ActiveFileName: string;
     ProjectFileName: string;
     IsValid: Boolean;
   end;
 
-function DiscoverRepository(const FileOrDirectory: string): TSmartGitInsightRepository;
-function DiscoverActiveRepository: TSmartGitInsightRepository;
+function DiscoverRepository(const FileOrDirectory: string): TGit4DRepository;
+function DiscoverActiveRepository: TGit4DRepository;
 function GetCurrentBranchName(const RepositoryRoot: string): string;
 
 implementation
 
 uses
-  System.Classes,
   System.IOUtils,
   System.SysUtils,
   ToolsAPI,
   Winapi.Windows,
-  SmartGitInsight.Settings;
+  Git4D.Settings;
 
 function IsGitRoot(const DirectoryName: string): Boolean;
 begin
@@ -40,12 +39,12 @@ begin
     Result := TPath.GetDirectoryName(Result);
 end;
 
-function DiscoverRepository(const FileOrDirectory: string): TSmartGitInsightRepository;
+function DiscoverRepository(const FileOrDirectory: string): TGit4DRepository;
 var
   DirectoryName: string;
   ParentName: string;
 begin
-  Result := Default(TSmartGitInsightRepository);
+  Result := Default(TGit4DRepository);
   Result.ActiveFileName := FileOrDirectory;
 
   DirectoryName := NormalizeStartDirectory(FileOrDirectory);
@@ -97,7 +96,7 @@ begin
   end;
 end;
 
-function DiscoverActiveRepository: TSmartGitInsightRepository;
+function DiscoverActiveRepository: TGit4DRepository;
 var
   ActiveFileName: string;
   ProjectFileName: string;
@@ -173,8 +172,9 @@ begin
   if RepositoryRoot = '' then
     Exit;
 
-  Output := ReadPipeText('"' + SmartGitInsightSettings.GitExecutable + '" branch --show-current', RepositoryRoot);
+  Output := ReadPipeText('"' + Git4DSettings.GitExecutable + '" branch --show-current', RepositoryRoot);
   Result := Trim(Output);
 end;
 
 end.
+

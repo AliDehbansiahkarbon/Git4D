@@ -1,9 +1,9 @@
-unit SmartGitInsight.TortoiseSVN;
+unit Git4D.TortoiseSVN;
 
 interface
 
 uses
-  SmartGitInsight.Repository;
+  Git4D.Repository;
 
 type
   TTortoiseSvnCommand = (
@@ -30,14 +30,14 @@ type
     svnAbout
   );
 
-  TSmartGitInsightTortoiseSVN = class
+  TGit4DTortoiseSVN = class
   public
     class function DetectExecutable: string; static;
     class function EffectiveExecutable: string; static;
     class function IsAvailable: Boolean; static;
     class function IsEnabledAndAvailable: Boolean; static;
     class function CommandDisplayName(ACommand: TTortoiseSvnCommand): string; static;
-    class procedure Run(ACommand: TTortoiseSvnCommand; const Repository: TSmartGitInsightRepository); static;
+    class procedure Run(ACommand: TTortoiseSvnCommand; const Repository: TGit4DRepository); static;
     class procedure RunForActiveRepository(ACommand: TTortoiseSvnCommand); static;
     class procedure RunForActiveFile(ACommand: TTortoiseSvnCommand); static;
   end;
@@ -50,7 +50,11 @@ uses
   System.Win.Registry,
   Vcl.Dialogs,
   Winapi.Windows,
-  SmartGitInsight.Settings;
+  Git4D.Settings;
+
+var
+  GDetectedExecutable: string;
+  GExecutableDetectionAttempted: Boolean;
 
 function Quote(const Value: string): string;
 begin
@@ -181,7 +185,7 @@ begin
   end;
 end;
 
-class function TSmartGitInsightTortoiseSVN.DetectExecutable: string;
+class function TGit4DTortoiseSVN.DetectExecutable: string;
 var
   DirectoryName: string;
 begin
@@ -212,31 +216,31 @@ begin
     Result := '';
 end;
 
-class function TSmartGitInsightTortoiseSVN.EffectiveExecutable: string;
+class function TGit4DTortoiseSVN.EffectiveExecutable: string;
 begin
-  Result := SmartGitInsightSettings.TortoiseSvnExecutable;
-  if (Result = '') or not FileExists(Result) then
+  Result := Git4DSettings.TortoiseSvnExecutable;
+  if (Result <> '') and FileExists(Result) then
+    Exit;
+
+  if not GExecutableDetectionAttempted then
   begin
-    Result := DetectExecutable;
-    if SmartGitInsightSettings.TortoiseSvnExecutable = '' then
-    begin
-      SmartGitInsightSettings.TortoiseSvnExecutable := Result;
-      SmartGitInsightSettings.Save;
-    end;
+    GDetectedExecutable := DetectExecutable;
+    GExecutableDetectionAttempted := True;
   end;
+  Result := GDetectedExecutable;
 end;
 
-class function TSmartGitInsightTortoiseSVN.IsAvailable: Boolean;
+class function TGit4DTortoiseSVN.IsAvailable: Boolean;
 begin
   Result := EffectiveExecutable <> '';
 end;
 
-class function TSmartGitInsightTortoiseSVN.IsEnabledAndAvailable: Boolean;
+class function TGit4DTortoiseSVN.IsEnabledAndAvailable: Boolean;
 begin
-  Result := SmartGitInsightSettings.TortoiseSvnEnabled and IsAvailable;
+  Result := Git4DSettings.TortoiseSvnEnabled and IsAvailable;
 end;
 
-class function TSmartGitInsightTortoiseSVN.CommandDisplayName(ACommand: TTortoiseSvnCommand): string;
+class function TGit4DTortoiseSVN.CommandDisplayName(ACommand: TTortoiseSvnCommand): string;
 begin
   case ACommand of
     svnUpdate:
@@ -286,8 +290,8 @@ begin
   end;
 end;
 
-class procedure TSmartGitInsightTortoiseSVN.Run(ACommand: TTortoiseSvnCommand;
-  const Repository: TSmartGitInsightRepository);
+class procedure TGit4DTortoiseSVN.Run(ACommand: TTortoiseSvnCommand;
+  const Repository: TGit4DRepository);
 var
   CommandLine: string;
   CurrentDirectory: PChar;
@@ -302,7 +306,7 @@ begin
   ExecutableName := EffectiveExecutable;
   if ExecutableName = '' then
   begin
-    MessageDlg('TortoiseProc.exe was not found. Configure it in Tools > Options > Third Party > Smart GitInsight.',
+    MessageDlg('TortoiseProc.exe was not found. Configure it in Tools > Options > Third Party > Git4D.',
       mtInformation, [mbOK], 0);
     Exit;
   end;
@@ -366,14 +370,14 @@ begin
   end;
 end;
 
-class procedure TSmartGitInsightTortoiseSVN.RunForActiveRepository(ACommand: TTortoiseSvnCommand);
+class procedure TGit4DTortoiseSVN.RunForActiveRepository(ACommand: TTortoiseSvnCommand);
 begin
   Run(ACommand, DiscoverActiveRepository);
 end;
 
-class procedure TSmartGitInsightTortoiseSVN.RunForActiveFile(ACommand: TTortoiseSvnCommand);
+class procedure TGit4DTortoiseSVN.RunForActiveFile(ACommand: TTortoiseSvnCommand);
 var
-  Repository: TSmartGitInsightRepository;
+  Repository: TGit4DRepository;
 begin
   Repository := DiscoverActiveRepository;
   if Repository.ActiveFileName = '' then
@@ -383,3 +387,4 @@ begin
 end;
 
 end.
+
