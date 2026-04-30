@@ -77,7 +77,6 @@ Context menus:
 
 - The plugin has been exercised primarily against RAD Studio 12.x and 13.x.
 - The editor popup integration is intentionally conservative because RAD Studio menu internals differ between IDE versions.
-- Existing Smart GitInsight settings are migrated automatically from `Smart GitInsight\SmartGitInsight.ini` when `Git4D` starts for the first time.
 
 ## Next Milestones
 
