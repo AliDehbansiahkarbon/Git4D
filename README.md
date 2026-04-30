@@ -87,3 +87,10 @@ Context menus:
 4. Add a real `Tools > Options > Version Control > Git4D` page using the RAD Studio options service for each supported IDE version.
 5. Add provider integrations for GitHub, GitLab, Azure DevOps, and Bitbucket Server.
 
+<hr>
+<p align="center">
+<img src="https://i0.wp.com/blogs.embarcadero.com/wp-content/uploads/2022/11/dlogonew-5582740.png?resize=254%2C242&ssl=1" alt="Delphi">
+</p>
+<h5 align="center">
+Made with :heart: on Delphi
+</h5>
