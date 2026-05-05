@@ -92,8 +92,8 @@ function TGit4DSettings.GetSettingsFileName: string;
 var
   SettingsDir: string;
 begin
-  SettingsDir := GetSettingsDirectory(G4DProductName);
-  Result := TPath.Combine(SettingsDir, G4DSettingsFileName);
+  SettingsDir := GetSettingsDirectory(cG4DProductName);
+  Result := TPath.Combine(SettingsDir, cG4DSettingsFileName);
 end;
 
 function TGit4DSettings.GetLegacySettingsFileName: string;

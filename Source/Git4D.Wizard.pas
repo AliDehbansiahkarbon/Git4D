@@ -1,5 +1,5 @@
 unit Git4D.Wizard;
-
+{$WARN SYMBOL_DEPRECATED OFF}
 interface
 
 uses
@@ -123,7 +123,6 @@ type
     procedure AddTortoiseSvnCommand(Menu: TMenuItem; Command: TTortoiseSvnCommand);
     function AddTortoiseSvnSubMenu(ParentMenu: TMenuItem): Boolean;
     procedure AddSeparator;
-    procedure AddSubMenu(const Caption: string; const Items: array of TMenuItem);
     function CreateActionItem(const Caption: string; const Handler: TNotifyEvent; const Shortcut: TShortCut = 0): TMenuItem;
     function CreateSeparator: TMenuItem;
     procedure EditorPopupHookTimer(Sender: TObject);
@@ -169,8 +168,6 @@ type
     procedure GitExtensionsCommand(Sender: TObject);
     procedure TortoiseSvnCommand(Sender: TObject);
     procedure ScheduleMainMenuRetry;
-    procedure UpdateEditorAction(Sender: TObject);
-    procedure UpdateEditorTortoiseGitAction(Sender: TObject);
     procedure TortoiseGitCommand(Sender: TObject);
   public
     constructor Create;
@@ -753,17 +750,17 @@ procedure TGit4DProjectMenuNotifier.AddMenu(const Project: IOTAProject; const Id
   const ProjectManagerMenuList: IInterfaceList; IsMultiSelect: Boolean);
 begin
   ProjectManagerMenuList.Add(TGit4DProjectMenuItem.Create(pmStatus,
-    G4DProductName + ': Status', 'Git4DProjectStatus') as IOTAProjectManagerMenu);
+    cG4DProductName + ': Status', 'Git4DProjectStatus') as IOTAProjectManagerMenu);
   ProjectManagerMenuList.Add(TGit4DProjectMenuItem.Create(pmCommit,
-    G4DProductName + ': Commit', 'Git4DProjectCommit') as IOTAProjectManagerMenu);
+    cG4DProductName + ': Commit', 'Git4DProjectCommit') as IOTAProjectManagerMenu);
   ProjectManagerMenuList.Add(TGit4DProjectMenuItem.Create(pmPull,
-    G4DProductName + ': Pull', 'Git4DProjectPull') as IOTAProjectManagerMenu);
+    cG4DProductName + ': Pull', 'Git4DProjectPull') as IOTAProjectManagerMenu);
   ProjectManagerMenuList.Add(TGit4DProjectMenuItem.Create(pmPush,
-    G4DProductName + ': Push', 'Git4DProjectPush') as IOTAProjectManagerMenu);
+    cG4DProductName + ': Push', 'Git4DProjectPush') as IOTAProjectManagerMenu);
   ProjectManagerMenuList.Add(TGit4DProjectMenuItem.Create(pmDiff,
-    G4DProductName + ': Diff Current File', 'Git4DProjectDiff') as IOTAProjectManagerMenu);
+    cG4DProductName + ': Diff Current File', 'Git4DProjectDiff') as IOTAProjectManagerMenu);
   ProjectManagerMenuList.Add(TGit4DProjectMenuItem.Create(pmHistory,
-    G4DProductName + ': File History', 'Git4DProjectHistory') as IOTAProjectManagerMenu);
+    cG4DProductName + ': File History', 'Git4DProjectHistory') as IOTAProjectManagerMenu);
 end;
 
 procedure TGit4DProjectMenuNotifier.AddProjectCommand(Menu: TMenuItem;
@@ -838,7 +835,7 @@ var
   TortoiseSvnMenu: TMenuItem;
 begin
   Result := TMenuItem.Create(nil);
-  Result.Caption := G4DProductName;
+  Result.Caption := cG4DProductName;
   Result.SubMenuImages := GetMenuImages;
 
   ExternalMenuAdded := False;
@@ -1070,12 +1067,12 @@ end;
 
 function TGit4DWizard.GetIDString: string;
 begin
-  Result := G4DWizardID;
+  Result := cG4DWizardID;
 end;
 
 function TGit4DWizard.GetName: string;
 begin
-  Result := G4DProductName;
+  Result := cG4DProductName;
 end;
 
 function TGit4DWizard.GetState: TWizardState;
@@ -1090,7 +1087,7 @@ end;
 
 function TGit4DWizard.GetMenuText: string;
 begin
-  Result := G4DProductName;
+  Result := cG4DProductName;
 end;
 
 function TGit4DWizard.CreateActionItem(const Caption: string; const Handler: TNotifyEvent;
@@ -1267,18 +1264,6 @@ end;
 procedure TGit4DWizard.AddSeparator;
 begin
   FMainMenu.Add(CreateSeparator);
-end;
-
-procedure TGit4DWizard.AddSubMenu(const Caption: string; const Items: array of TMenuItem);
-var
-  Menu: TMenuItem;
-  Index: Integer;
-begin
-  Menu := TMenuItem.Create(nil);
-  Menu.Caption := Caption;
-  for Index := Low(Items) to High(Items) do
-    Menu.Add(Items[Index]);
-  FMainMenu.Add(Menu);
 end;
 
 procedure TGit4DWizard.AddGitCommand(Menu: TMenuItem; const Caption: string; const Handler: TNotifyEvent);
@@ -1507,7 +1492,7 @@ begin
   ExistingMenu := nil;
   for Index := 0 to ToolsMenu.Count - 1 do
     if SameText(ToolsMenu.Items[Index].Name, G4DMainMenuName) or
-      SameText(NormalizedCaption(ToolsMenu.Items[Index].Caption), G4DProductName) then
+      SameText(NormalizedCaption(ToolsMenu.Items[Index].Caption), cG4DProductName) then
     begin
       ExistingMenu := ToolsMenu.Items[Index];
       Break;
@@ -1625,7 +1610,7 @@ begin
   begin
     Item := PopupMenu.Items[Index];
     if SameText(Item.Name, G4DEditorPopupMenuName) or
-      SameText(NormalizedCaption(Item.Caption), G4DProductName) then
+      SameText(NormalizedCaption(Item.Caption), cG4DProductName) then
     begin
       PopupMenu.Items.Remove(Item);
       Item.Free;
@@ -1670,7 +1655,7 @@ begin
 
   RootMenu := TMenuItem.Create(PopupMenu);
   RootMenu.Name := G4DEditorPopupMenuName;
-  RootMenu.Caption := G4DProductName;
+  RootMenu.Caption := cG4DProductName;
   ExternalMenuAdded := AddTortoiseSvnSubMenu(RootMenu);
   if AddTortoiseGitSubMenu(RootMenu) then
     ExternalMenuAdded := True;
@@ -1815,7 +1800,7 @@ procedure TGit4DWizard.CheckoutBranch(Sender: TObject);
 var
   BranchName: string;
 begin
-  if InputQuery(G4DProductName, 'Branch to checkout', BranchName) then
+  if InputQuery(cG4DProductName, 'Branch to checkout', BranchName) then
     TGit4DGit.RunGitForActiveRepository('checkout ' + BranchName);
 end;
 
@@ -1823,7 +1808,7 @@ procedure TGit4DWizard.CreateBranch(Sender: TObject);
 var
   BranchName: string;
 begin
-  if InputQuery(G4DProductName, 'New branch name', BranchName) then
+  if InputQuery(cG4DProductName, 'New branch name', BranchName) then
     TGit4DGit.RunGitForActiveRepository('checkout -b ' + BranchName);
 end;
 
@@ -1831,7 +1816,7 @@ procedure TGit4DWizard.MergeBranch(Sender: TObject);
 var
   BranchName: string;
 begin
-  if InputQuery(G4DProductName, 'Branch to merge', BranchName) then
+  if InputQuery(cG4DProductName, 'Branch to merge', BranchName) then
     TGit4DGit.RunGitForActiveRepository('merge ' + BranchName);
 end;
 
@@ -1839,7 +1824,7 @@ procedure TGit4DWizard.RebaseBranch(Sender: TObject);
 var
   BranchName: string;
 begin
-  if InputQuery(G4DProductName, 'Branch to rebase onto', BranchName) then
+  if InputQuery(cG4DProductName, 'Branch to rebase onto', BranchName) then
     TGit4DGit.RunGitForActiveRepository('rebase ' + BranchName);
 end;
 
@@ -1847,7 +1832,7 @@ procedure TGit4DWizard.CherryPick(Sender: TObject);
 var
   CommitHash: string;
 begin
-  if InputQuery(G4DProductName, 'Commit to cherry-pick', CommitHash) then
+  if InputQuery(cG4DProductName, 'Commit to cherry-pick', CommitHash) then
     TGit4DGit.RunGitForActiveRepository('cherry-pick ' + CommitHash);
 end;
 
@@ -1969,26 +1954,6 @@ begin
   except
     on E: Exception do
       MessageDlg(E.Message, mtError, [mbOK], 0);
-  end;
-end;
-
-procedure TGit4DWizard.UpdateEditorAction(Sender: TObject);
-begin
-  if Sender is TCustomAction then
-  begin
-    (Sender as TCustomAction).Visible := Git4DSettings.EditorPopupEnabled;
-    (Sender as TCustomAction).Enabled := Git4DSettings.EditorPopupEnabled;
-  end;
-end;
-
-procedure TGit4DWizard.UpdateEditorTortoiseGitAction(Sender: TObject);
-begin
-  if Sender is TCustomAction then
-  begin
-    (Sender as TCustomAction).Visible := Git4DSettings.EditorPopupEnabled and
-      Git4DSettings.TortoiseGitEnabled;
-    (Sender as TCustomAction).Enabled := Git4DSettings.EditorPopupEnabled and
-      Git4DSettings.TortoiseGitEnabled;
   end;
 end;
 

@@ -123,9 +123,9 @@ var
 begin
   if Supports(BorlandIDEServices, IOTAServices, Services) and
     Supports(Services.GetEnvironmentOptions, IOTAEnvironmentOptions140, Options) then
-    (Options as IOTAEnvironmentOptions140).EditOptions('', G4DProductName)
+    (Options as IOTAEnvironmentOptions140).EditOptions('', cG4DProductName)
   else
-    MessageDlg('Open Tools > Options > Third Party > ' + G4DProductName + ' to configure Git4D.',
+    MessageDlg('Open Tools > Options > Third Party > ' + cG4DProductName + ' to configure Git4D.',
       mtInformation, [mbOK], 0);
 end;
 
@@ -231,7 +231,7 @@ end;
 
 function TGit4DAddInOptions.GetCaption: string;
 begin
-  Result := G4DProductName;
+  Result := cG4DProductName;
 end;
 
 function TGit4DAddInOptions.GetFrameClass: TCustomFrameClass;

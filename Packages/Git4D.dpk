@@ -1,4 +1,4 @@
-package Git4DRAD;
+package Git4D;
 
 {$ALIGN 8}
 {$ASSERTIONS ON}
@@ -21,7 +21,7 @@ package Git4DRAD;
 {$WRITEABLECONST OFF}
 {$MINENUMSIZE 1}
 {$IMAGEBASE $400000}
-{$DESCRIPTION 'Git4D RAD Studio IDE integration'}
+{$DESCRIPTION 'Git4D RAD Studio integration- by Ali Dehbansiahkarbon'}
 {$DESIGNONLY}
 {$IMPLICITBUILD ON}
 

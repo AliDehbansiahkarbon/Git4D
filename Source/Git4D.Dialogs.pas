@@ -18,132 +18,133 @@ uses
   Git4D.Constants,
   Git4D.Settings;
 
-procedure AddLabeledEdit(AOwner: TComponent; AParent: TWinControl; const Caption: string;
-  var Top: Integer; out Edit: TEdit; const Text: string);
+procedure AddLabeledEdit(AOwner: TComponent; AParent: TWinControl; const ACaption: string;
+  var ATop: Integer; out AEdit: TEdit; const Text: string);
 var
-  LabelControl: TLabel;
+  LLabelControl: TLabel;
 begin
-  LabelControl := TLabel.Create(AOwner);
-  LabelControl.Parent := AParent;
-  LabelControl.Left := 16;
-  LabelControl.Top := Top + 4;
-  LabelControl.Caption := Caption;
+  LLabelControl := TLabel.Create(AOwner);
+  LLabelControl.Parent := AParent;
+  LLabelControl.Left := 16;
+  LLabelControl.Top := ATop + 4;
+  LLabelControl.Caption := ACaption;
 
-  Edit := TEdit.Create(AOwner);
-  Edit.Parent := AParent;
-  Edit.Left := 180;
-  Edit.Top := Top;
-  Edit.Width := 380;
-  Edit.Text := Text;
-  Inc(Top, 32);
+  AEdit := TEdit.Create(AOwner);
+  AEdit.Parent := AParent;
+  AEdit.Left := 180;
+  AEdit.Top := ATop;
+  AEdit.Width := 380;
+  AEdit.Text := Text;
+  Inc(ATop, 32);
 end;
 
 procedure ShowGit4DSettingsDialog;
 var
-  Form: TForm;
-  GitEdit: TEdit;
-  BashEdit: TEdit;
-  CloneEdit: TEdit;
-  BranchCheck: TCheckBox;
-  ConfirmCheck: TCheckBox;
-  BackgroundFetchCheck: TCheckBox;
-  AutoCloseCheck: TCheckBox;
-  ButtonPanel: TPanel;
-  OkButton: TButton;
-  CancelButton: TButton;
-  Top: Integer;
+  LForm: TForm;
+  LGitEdit: TEdit;
+  LBashEdit: TEdit;
+  LCloneEdit: TEdit;
+  LBranchCheck: TCheckBox;
+  LConfirmCheck: TCheckBox;
+  LBackgroundFetchCheck: TCheckBox;
+  LAutoCloseCheck: TCheckBox;
+  LButtonPanel: TPanel;
+  LOkButton: TButton;
+  LCancelButton: TButton;
+  LTop: Integer;
 begin
-  Form := TForm.Create(nil);
+  LForm := TForm.Create(nil);
   try
-    Form.Caption := G4DProductName + ' Settings';
-    Form.BorderStyle := bsDialog;
-    Form.Position := poScreenCenter;
-    Form.ClientWidth := 590;
-    Form.ClientHeight := 330;
+    LForm.Caption := cG4DProductName + ' Settings';
+    LForm.BorderStyle := bsDialog;
+    LForm.Position := poScreenCenter;
+    LForm.ClientWidth := 590;
+    LForm.ClientHeight := 330;
 
-    Top := 18;
-    AddLabeledEdit(Form, Form, 'Git executable', Top, GitEdit, Git4DSettings.GitExecutable);
-    AddLabeledEdit(Form, Form, 'Git Bash executable', Top, BashEdit, Git4DSettings.GitBashExecutable);
-    AddLabeledEdit(Form, Form, 'Default clone folder', Top, CloneEdit, Git4DSettings.DefaultCloneDirectory);
+    LTop := 18;
+    AddLabeledEdit(LForm, LForm, 'Git executable', LTop, LGitEdit, Git4DSettings.GitExecutable);
+    AddLabeledEdit(LForm, LForm, 'Git Bash executable', LTop, LBashEdit, Git4DSettings.GitBashExecutable);
+    AddLabeledEdit(LForm, LForm, 'Default clone folder', LTop, LCloneEdit, Git4DSettings.DefaultCloneDirectory);
 
-    BranchCheck := TCheckBox.Create(Form);
-    BranchCheck.Parent := Form;
-    BranchCheck.Left := 180;
-    BranchCheck.Top := Top;
-    BranchCheck.Width := 380;
-    BranchCheck.Caption := 'Show current branch in the Git4D menu';
-    BranchCheck.Checked := Git4DSettings.ShowBranchInMenu;
-    Inc(Top, 28);
+    LBranchCheck := TCheckBox.Create(LForm);
+    LBranchCheck.Parent := LForm;
+    LBranchCheck.Left := 180;
+    LBranchCheck.Top := LTop;
+    LBranchCheck.Width := 380;
+    LBranchCheck.Caption := 'Show current branch in the Git4D menu';
+    LBranchCheck.Checked := Git4DSettings.ShowBranchInMenu;
+    Inc(LTop, 28);
 
-    ConfirmCheck := TCheckBox.Create(Form);
-    ConfirmCheck.Parent := Form;
-    ConfirmCheck.Left := 180;
-    ConfirmCheck.Top := Top;
-    ConfirmCheck.Width := 380;
-    ConfirmCheck.Caption := 'Confirm destructive commands';
-    ConfirmCheck.Checked := Git4DSettings.ShowConfirmationForDestructiveActions;
-    Inc(Top, 28);
+    LConfirmCheck := TCheckBox.Create(LForm);
+    LConfirmCheck.Parent := LForm;
+    LConfirmCheck.Left := 180;
+    LConfirmCheck.Top := LTop;
+    LConfirmCheck.Width := 380;
+    LConfirmCheck.Caption := 'Confirm destructive commands';
+    LConfirmCheck.Checked := Git4DSettings.ShowConfirmationForDestructiveActions;
+    Inc(LTop, 28);
 
-    BackgroundFetchCheck := TCheckBox.Create(Form);
-    BackgroundFetchCheck.Parent := Form;
-    BackgroundFetchCheck.Left := 180;
-    BackgroundFetchCheck.Top := Top;
-    BackgroundFetchCheck.Width := 380;
-    BackgroundFetchCheck.Caption := 'Enable background fetch';
-    BackgroundFetchCheck.Checked := Git4DSettings.BackgroundFetchEnabled;
-    Inc(Top, 28);
+    LBackgroundFetchCheck := TCheckBox.Create(LForm);
+    LBackgroundFetchCheck.Parent := LForm;
+    LBackgroundFetchCheck.Left := 180;
+    LBackgroundFetchCheck.Top := LTop;
+    LBackgroundFetchCheck.Width := 380;
+    LBackgroundFetchCheck.Caption := 'Enable background fetch';
+    LBackgroundFetchCheck.Checked := Git4DSettings.BackgroundFetchEnabled;
+    Inc(LTop, 28);
 
-    AutoCloseCheck := TCheckBox.Create(Form);
-    AutoCloseCheck.Parent := Form;
-    AutoCloseCheck.Left := 180;
-    AutoCloseCheck.Top := Top;
-    AutoCloseCheck.Width := 380;
-    AutoCloseCheck.Caption := 'Close command console when the process succeeds';
-    AutoCloseCheck.Checked := Git4DSettings.AutoCloseConsoleOnSuccess;
+    LAutoCloseCheck := TCheckBox.Create(LForm);
+    LAutoCloseCheck.Parent := LForm;
+    LAutoCloseCheck.Left := 180;
+    LAutoCloseCheck.Top := LTop;
+    LAutoCloseCheck.Width := 380;
+    LAutoCloseCheck.Caption := 'Close command console when the process succeeds';
+    LAutoCloseCheck.Checked := Git4DSettings.AutoCloseConsoleOnSuccess;
 
-    ButtonPanel := TPanel.Create(Form);
-    ButtonPanel.Parent := Form;
-    ButtonPanel.Align := alBottom;
-    ButtonPanel.Height := 48;
-    ButtonPanel.BevelOuter := bvNone;
+    LButtonPanel := TPanel.Create(LForm);
+    LButtonPanel.Parent := LForm;
+    LButtonPanel.Align := alBottom;
+    LButtonPanel.Height := 48;
+    LButtonPanel.BevelOuter := bvNone;
 
-    OkButton := TButton.Create(Form);
-    OkButton.Parent := ButtonPanel;
-    OkButton.Caption := 'OK';
-    OkButton.ModalResult := mrOK;
-    OkButton.Left := 410;
-    OkButton.Top := 10;
-    OkButton.Default := True;
+    LOkButton := TButton.Create(LForm);
+    LOkButton.Parent := LButtonPanel;
+    LOkButton.Caption := 'OK';
+    LOkButton.ModalResult := mrOK;
+    LOkButton.Left := 410;
+    LOkButton.Top := 10;
+    LOkButton.Default := True;
 
-    CancelButton := TButton.Create(Form);
-    CancelButton.Parent := ButtonPanel;
-    CancelButton.Caption := 'Cancel';
-    CancelButton.ModalResult := mrCancel;
-    CancelButton.Left := 495;
-    CancelButton.Top := 10;
-    CancelButton.Cancel := True;
+    LCancelButton := TButton.Create(LForm);
+    LCancelButton.Parent := LButtonPanel;
+    LCancelButton.Caption := 'Cancel';
+    LCancelButton.ModalResult := mrCancel;
+    LCancelButton.Left := 495;
+    LCancelButton.Top := 10;
+    LCancelButton.Cancel := True;
 
-    if Form.ShowModal = mrOK then
+    if LForm.ShowModal = mrOK then
     begin
-      Git4DSettings.GitExecutable := GitEdit.Text;
-      Git4DSettings.GitBashExecutable := BashEdit.Text;
-      Git4DSettings.DefaultCloneDirectory := CloneEdit.Text;
-      Git4DSettings.ShowBranchInMenu := BranchCheck.Checked;
-      Git4DSettings.ShowConfirmationForDestructiveActions := ConfirmCheck.Checked;
-      Git4DSettings.BackgroundFetchEnabled := BackgroundFetchCheck.Checked;
-      Git4DSettings.AutoCloseConsoleOnSuccess := AutoCloseCheck.Checked;
+      Git4DSettings.GitExecutable := LGitEdit.Text;
+      Git4DSettings.GitBashExecutable := LBashEdit.Text;
+      Git4DSettings.DefaultCloneDirectory := LCloneEdit.Text;
+      Git4DSettings.ShowBranchInMenu := LBranchCheck.Checked;
+      Git4DSettings.ShowConfirmationForDestructiveActions := LConfirmCheck.Checked;
+      Git4DSettings.BackgroundFetchEnabled := LBackgroundFetchCheck.Checked;
+      Git4DSettings.AutoCloseConsoleOnSuccess := LAutoCloseCheck.Checked;
       Git4DSettings.Save;
     end;
   finally
-    Form.Free;
+    LForm.Free;
   end;
 end;
 
 procedure ShowGit4DAboutDialog;
 begin
-  MessageDlg(G4DProductName + sLineBreak + sLineBreak +
+  MessageDlg(cG4DProductName + sLineBreak + sLineBreak +
     'RAD Studio Git client for Delphi and C++Builder.' + sLineBreak +
-    'This build provides the IDE integration and Git command surface foundation.',
+    'This build provides the IDE integration and Git command surface foundation.' + sLineBreak +
+    'By Ali Dehbansiahkarbon(adehban@gmail.com)',
     mtInformation, [mbOK], 0);
 end;
 
