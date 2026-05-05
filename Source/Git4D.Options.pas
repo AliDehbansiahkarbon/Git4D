@@ -27,6 +27,8 @@ type
     FTortoiseGitEdit: TEdit;
     FTortoiseSvnCheck: TCheckBox;
     FTortoiseSvnEdit: TEdit;
+    FWorkbenchTerminalCheck: TCheckBox;
+    FWorkbenchTerminalWordWrapCheck: TCheckBox;
     procedure AddLabeledEdit(const ACaption: string; var ATop: Integer; out AEdit: TEdit);
     procedure AddCheckBox(const ACaption: string; var ATop: Integer; out ACheckBox: TCheckBox);
   public
@@ -63,6 +65,7 @@ uses
   Git4D.Constants,
   Git4D.GitExtensions,
   Git4D.Settings,
+  Git4D.Workbench,
   Git4D.TortoiseGit,
   Git4D.TortoiseSVN;
 
@@ -147,6 +150,8 @@ begin
   AddCheckBox('Confirm destructive commands', LTop, FConfirmCheck);
   AddCheckBox('Enable background fetch', LTop, FBackgroundFetchCheck);
   AddCheckBox('Close command console when process succeeds', LTop, FAutoCloseCheck);
+  AddCheckBox('Show Workbench terminal', LTop, FWorkbenchTerminalCheck);
+  AddCheckBox('Word wrap Workbench terminal output', LTop, FWorkbenchTerminalWordWrapCheck);
   Inc(LTop, 10);
   AddCheckBox('Enable TortoiseGit submenu when installed', LTop, FTortoiseGitCheck);
   AddLabeledEdit('TortoiseGitProc.exe', LTop, FTortoiseGitEdit);
@@ -197,6 +202,8 @@ begin
   FConfirmCheck.Checked := Git4DSettings.ShowConfirmationForDestructiveActions;
   FBackgroundFetchCheck.Checked := Git4DSettings.BackgroundFetchEnabled;
   FAutoCloseCheck.Checked := Git4DSettings.AutoCloseConsoleOnSuccess;
+  FWorkbenchTerminalCheck.Checked := Git4DSettings.WorkbenchTerminalEnabled;
+  FWorkbenchTerminalWordWrapCheck.Checked := Git4DSettings.WorkbenchTerminalWordWrap;
   FTortoiseGitCheck.Checked := Git4DSettings.TortoiseGitEnabled;
   FTortoiseGitEdit.Text := ResolveTortoiseGitExecutable;
   FTortoiseSvnCheck.Checked := Git4DSettings.TortoiseSvnEnabled;
@@ -215,6 +222,8 @@ begin
   Git4DSettings.ShowConfirmationForDestructiveActions := FConfirmCheck.Checked;
   Git4DSettings.BackgroundFetchEnabled := FBackgroundFetchCheck.Checked;
   Git4DSettings.AutoCloseConsoleOnSuccess := FAutoCloseCheck.Checked;
+  Git4DSettings.WorkbenchTerminalEnabled := FWorkbenchTerminalCheck.Checked;
+  Git4DSettings.WorkbenchTerminalWordWrap := FWorkbenchTerminalWordWrapCheck.Checked;
   Git4DSettings.TortoiseGitEnabled := FTortoiseGitCheck.Checked;
   Git4DSettings.TortoiseGitExecutable := FTortoiseGitEdit.Text;
   Git4DSettings.TortoiseSvnEnabled := FTortoiseSvnCheck.Checked;
@@ -222,6 +231,7 @@ begin
   Git4DSettings.GitExtensionsEnabled := FGitExtensionsCheck.Checked;
   Git4DSettings.GitExtensionsExecutable := FGitExtensionsEdit.Text;
   Git4DSettings.Save;
+  RefreshGit4DWorkbenchSettings;
 end;
 
 function TGit4DAddInOptions.GetArea: string;

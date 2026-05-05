@@ -20,6 +20,8 @@ type
     FTortoiseGitExecutable: string;
     FTortoiseSvnEnabled: Boolean;
     FTortoiseSvnExecutable: string;
+    FWorkbenchTerminalEnabled: Boolean;
+    FWorkbenchTerminalWordWrap: Boolean;
     function GetLegacySettingsFileName: string;
     function GetSettingsDirectory(const ProductName: string): string;
     function GetSettingsFileName: string;
@@ -40,6 +42,8 @@ type
     property TortoiseGitExecutable: string read FTortoiseGitExecutable write FTortoiseGitExecutable;
     property TortoiseSvnEnabled: Boolean read FTortoiseSvnEnabled write FTortoiseSvnEnabled;
     property TortoiseSvnExecutable: string read FTortoiseSvnExecutable write FTortoiseSvnExecutable;
+    property WorkbenchTerminalEnabled: Boolean read FWorkbenchTerminalEnabled write FWorkbenchTerminalEnabled;
+    property WorkbenchTerminalWordWrap: Boolean read FWorkbenchTerminalWordWrap write FWorkbenchTerminalWordWrap;
     property BackgroundFetchEnabled: Boolean read FBackgroundFetchEnabled write FBackgroundFetchEnabled;
     property BackgroundFetchIntervalSeconds: Integer read FBackgroundFetchIntervalSeconds write FBackgroundFetchIntervalSeconds;
     property AutoCloseConsoleOnSuccess: Boolean read FAutoCloseConsoleOnSuccess write FAutoCloseConsoleOnSuccess;
@@ -83,6 +87,8 @@ begin
   FTortoiseGitExecutable := '';
   FTortoiseSvnEnabled := False;
   FTortoiseSvnExecutable := '';
+  FWorkbenchTerminalEnabled := True;
+  FWorkbenchTerminalWordWrap := True;
   FBackgroundFetchEnabled := False;
   FBackgroundFetchIntervalSeconds := 300;
   FAutoCloseConsoleOnSuccess := False;
@@ -130,6 +136,8 @@ begin
     FTortoiseGitExecutable := LIni.ReadString('TortoiseGit', 'Executable', FTortoiseGitExecutable);
     FTortoiseSvnEnabled := LIni.ReadBool('TortoiseSVN', 'Enabled', FTortoiseSvnEnabled);
     FTortoiseSvnExecutable := LIni.ReadString('TortoiseSVN', 'Executable', FTortoiseSvnExecutable);
+    FWorkbenchTerminalEnabled := LIni.ReadBool('Workbench', 'TerminalEnabled', FWorkbenchTerminalEnabled);
+    FWorkbenchTerminalWordWrap := LIni.ReadBool('Workbench', 'TerminalWordWrap', FWorkbenchTerminalWordWrap);
     FBackgroundFetchEnabled := LIni.ReadBool('BackgroundFetch', 'Enabled', FBackgroundFetchEnabled);
     FBackgroundFetchIntervalSeconds := LIni.ReadInteger('BackgroundFetch', 'IntervalSeconds', FBackgroundFetchIntervalSeconds);
     FAutoCloseConsoleOnSuccess := LIni.ReadBool('Process', 'AutoCloseConsoleOnSuccess', FAutoCloseConsoleOnSuccess);
@@ -156,6 +164,8 @@ begin
     LIni.WriteString('TortoiseGit', 'Executable', FTortoiseGitExecutable);
     LIni.WriteBool('TortoiseSVN', 'Enabled', FTortoiseSvnEnabled);
     LIni.WriteString('TortoiseSVN', 'Executable', FTortoiseSvnExecutable);
+    LIni.WriteBool('Workbench', 'TerminalEnabled', FWorkbenchTerminalEnabled);
+    LIni.WriteBool('Workbench', 'TerminalWordWrap', FWorkbenchTerminalWordWrap);
     LIni.WriteBool('BackgroundFetch', 'Enabled', FBackgroundFetchEnabled);
     LIni.WriteInteger('BackgroundFetch', 'IntervalSeconds', FBackgroundFetchIntervalSeconds);
     LIni.WriteBool('Process', 'AutoCloseConsoleOnSuccess', FAutoCloseConsoleOnSuccess);

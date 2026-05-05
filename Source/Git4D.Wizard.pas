@@ -163,6 +163,7 @@ type
     procedure StageCurrentFile(Sender: TObject);
     procedure ResetCurrentFile(Sender: TObject);
     procedure OpenTerminal(Sender: TObject);
+    procedure ShowWorkbench(Sender: TObject);
     procedure ShowSettings(Sender: TObject);
     procedure ShowAbout(Sender: TObject);
     procedure GitExtensionsCommand(Sender: TObject);
@@ -196,7 +197,8 @@ uses
   Git4D.Git,
   Git4D.Options,
   Git4D.Repository,
-  Git4D.Settings;
+  Git4D.Settings,
+  Git4D.Workbench;
 
 const
   G4DLegacyEditorActionListCategory = 'Git4D';
@@ -1146,6 +1148,7 @@ end;
 
 destructor TGit4DWizard.Destroy;
 begin
+  ReleaseGit4DWorkbench;
   UninstallEditorLocalMenu;
   if FProjectMenuLegacyNotifierIndex >= 0 then
     try
@@ -1659,11 +1662,17 @@ end;
 procedure TGit4DWizard.RebuildMainMenuItems;
 var
   LExternalMenuAdded: Boolean;
+  LWorkbenchItem: TMenuItem;
 begin
   if FMainMenu = nil then
     Exit;
 
   FMainMenu.Clear;
+
+  LWorkbenchItem := CreateActionItem('&Workbench', ShowWorkbench);
+  ApplyMenuIcon(LWorkbenchItem, mikFolderOpen);
+  FMainMenu.Add(LWorkbenchItem);
+  AddSeparator;
 
   LExternalMenuAdded := AddTortoiseSvnSubMenu(FMainMenu);
   if AddTortoiseGitSubMenu(FMainMenu) then
@@ -1737,6 +1746,7 @@ var
   LInsertIndex: Integer;
   LItem: TMenuItem;
   LRootMenu: TMenuItem;
+  LWorkbenchItem: TMenuItem;
 begin
   if PopupMenu = nil then
     Exit;
@@ -1767,6 +1777,12 @@ begin
   LRootMenu := TMenuItem.Create(PopupMenu);
   LRootMenu.Name := G4DEditorPopupMenuName;
   LRootMenu.Caption := cG4DProductName;
+
+  LWorkbenchItem := CreateActionItem('&Workbench', ShowWorkbench);
+  ApplyMenuIcon(LWorkbenchItem, mikFolderOpen);
+  LRootMenu.Add(LWorkbenchItem);
+  LRootMenu.Add(CreateSeparator);
+
   LExternalMenuAdded := AddTortoiseSvnSubMenu(LRootMenu);
   if AddTortoiseGitSubMenu(LRootMenu) then
     LExternalMenuAdded := True;
@@ -2000,6 +2016,11 @@ begin
     on E: Exception do
       MessageDlg(E.Message, mtInformation, [mbOK], 0);
   end;
+end;
+
+procedure TGit4DWizard.ShowWorkbench(Sender: TObject);
+begin
+  ShowGit4DWorkbench;
 end;
 
 procedure TGit4DWizard.ShowSettings(Sender: TObject);

@@ -12,6 +12,7 @@ type
     tgPush,
     tgSync,
     tgCommit,
+    tgAdd,
     tgDiff,
     tgPreviousDiff,
     tgLog,
@@ -106,6 +107,8 @@ begin
       Result := 'sync';
     tgCommit:
       Result := 'commit';
+    tgAdd:
+      Result := 'add';
     tgDiff:
       Result := 'diff';
     tgPreviousDiff:
@@ -167,7 +170,7 @@ end;
 
 function CommandNeedsActiveFile(ACommand: TTortoiseGitCommand): Boolean;
 begin
-  Result := ACommand in [tgDiff, tgPreviousDiff, tgBlame, tgResolve];
+  Result := ACommand in [tgAdd, tgDiff, tgPreviousDiff, tgBlame, tgResolve];
 end;
 
 function CommandAllowsNoTarget(ACommand: TTortoiseGitCommand): Boolean;
@@ -255,6 +258,8 @@ begin
       Result := 'Git Sync...';
     tgCommit:
       Result := 'Git Commit...';
+    tgAdd:
+      Result := 'Git Add...';
     tgDiff:
       Result := 'Diff';
     tgPreviousDiff:

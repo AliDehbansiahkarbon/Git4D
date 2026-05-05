@@ -102,6 +102,9 @@
         <DCCReference Include="..\Source\Git4D.TortoiseSVN.pas"/>
         <DCCReference Include="..\Source\Git4D.Dialogs.pas"/>
         <DCCReference Include="..\Source\Git4D.Options.pas"/>
+        <DCCReference Include="..\Source\Git4D.Workbench.pas">
+            <Form>Git4DWorkbenchForm</Form>
+        </DCCReference>
         <DCCReference Include="..\Source\Git4D.Wizard.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>

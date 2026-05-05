@@ -41,6 +41,7 @@ contains
   Git4D.TortoiseSVN in '..\Source\Git4D.TortoiseSVN.pas',
   Git4D.Dialogs in '..\Source\Git4D.Dialogs.pas',
   Git4D.Options in '..\Source\Git4D.Options.pas',
+  Git4D.Workbench in '..\Source\Git4D.Workbench.pas',
   Git4D.Wizard in '..\Source\Git4D.Wizard.pas';
 
 end.
