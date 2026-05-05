@@ -36,6 +36,7 @@ type
   end;
 
   TGit4DProjectMenuKind = (
+    pmRoot,
     pmStatus,
     pmCommit,
     pmPull,
@@ -111,8 +112,7 @@ type
     FMainMenuRetryCount: Integer;
     FMainMenuRetryTimer: TTimer;
     FProjectMenuNotifier: TGit4DProjectMenuNotifier;
-    FProjectMenuNotifierIndex: Integer;
-    FProjectMenuUsesLegacyNotifier: Boolean;
+    FProjectMenuLegacyNotifierIndex: Integer;
     procedure AddAction(const Caption: string; const Handler: TNotifyEvent; const Shortcut: TShortCut = 0);
     procedure AddGitCommand(Menu: TMenuItem; const Caption: string; const Handler: TNotifyEvent);
     procedure AddGitExtensionsCommand(Menu: TMenuItem; Command: TGitExtensionsCommand);
@@ -236,6 +236,75 @@ var
 function NormalizedCaption(const Caption: string): string;
 begin
   Result := StringReplace(Caption, '&', '', [rfReplaceAll]);
+end;
+
+function IsProjectManagerContainerIdent(const Ident: string): Boolean;
+begin
+  Result := SameText(Ident, sBaseContainer) or
+    SameText(Ident, sFileContainer) or
+    SameText(Ident, sProjectContainer) or
+    SameText(Ident, sProjectGroupContainer) or
+    SameText(Ident, sCategoryContainer) or
+    SameText(Ident, sDirectoryContainer) or
+    SameText(Ident, sReferencesContainer) or
+    SameText(Ident, sContainsContainer) or
+    SameText(Ident, sRequiresContainer) or
+    SameText(Ident, sVirtualFoldContainer) or
+    SameText(Ident, sBuildConfigContainer) or
+    SameText(Ident, sOptionSetContainer) or
+    SameText(Ident, sTargetPlatformContainer);
+end;
+
+function IsProjectManagerSelectionSupported(const IdentList: TStrings): Boolean;
+var
+  LIdent: string;
+  LIndex: Integer;
+begin
+  Result := False;
+  if IdentList = nil then
+    Exit;
+
+  for LIndex := 0 to IdentList.Count - 1 do
+  begin
+    LIdent := IdentList[LIndex];
+    if IsProjectManagerContainerIdent(LIdent) or FileExists(LIdent) or DirectoryExists(LIdent) then
+      Exit(True);
+  end;
+end;
+
+function ResolveProjectMenuRepository(const MenuContextList: IInterfaceList): TGit4DRepository;
+var
+  LDirectoryRepository: TGit4DRepository;
+  LContext: IOTAMenuContext;
+  LIndex: Integer;
+  LMenuItemContext: IOTAProjectMenuContext;
+  LSelectedIdent: string;
+begin
+  Result := Default(TGit4DRepository);
+
+  if MenuContextList <> nil then
+    for LIndex := 0 to MenuContextList.Count - 1 do
+    begin
+      if Supports(MenuContextList[LIndex], IOTAMenuContext, LContext) then
+      begin
+        LSelectedIdent := LContext.Ident;
+        if FileExists(LSelectedIdent) or DirectoryExists(LSelectedIdent) then
+        begin
+          Result := DiscoverRepository(LSelectedIdent);
+          if DirectoryExists(LSelectedIdent) then
+            Result.ActiveFileName := '';
+          Exit;
+        end;
+      end;
+
+      if Supports(MenuContextList[LIndex], IOTAProjectMenuContext, LMenuItemContext) and
+        (LMenuItemContext.Project <> nil) and (LMenuItemContext.Project.FileName <> '') then
+      begin
+        LDirectoryRepository := DiscoverRepository(LMenuItemContext.Project.FileName);
+        LDirectoryRepository.ProjectFileName := LMenuItemContext.Project.FileName;
+        Exit(LDirectoryRepository);
+      end;
+    end;
 end;
 
 function MenuIconResourceName(AKey: TGit4DMenuIconKey): string;
@@ -719,20 +788,31 @@ begin
 end;
 
 procedure TGit4DProjectMenuItem.Execute(const MenuContextList: IInterfaceList);
+var
+  LRepository: TGit4DRepository;
 begin
-  case FKind of
-    pmStatus:
-      TGit4DGit.RunGitForActiveRepository('status --short --branch');
-    pmCommit:
-      TGit4DGit.RunGitForActiveRepository('status --short && git add --patch && git commit');
-    pmPull:
-      TGit4DGit.RunGitForActiveRepository('pull --stat');
-    pmPush:
-      TGit4DGit.RunGitForActiveRepository('push');
-    pmDiff:
-      TGit4DGit.DiffActiveFile;
-    pmHistory:
-      TGit4DGit.FileHistory;
+  if FKind = pmRoot then
+    Exit;
+
+  try
+    LRepository := ResolveProjectMenuRepository(MenuContextList);
+    case FKind of
+      pmStatus:
+        TGit4DGit.RunGitConsole(LRepository, 'status --short --branch');
+      pmCommit:
+        TGit4DGit.RunGitConsole(LRepository, 'status --short && git add --patch && git commit');
+      pmPull:
+        TGit4DGit.RunGitConsole(LRepository, 'pull --stat');
+      pmPush:
+        TGit4DGit.RunGitConsole(LRepository, 'push');
+      pmDiff:
+        TGit4DGit.RunGitForFile(LRepository, 'diff');
+      pmHistory:
+        TGit4DGit.RunGitForFile(LRepository, 'log --follow --stat');
+    end;
+  except
+    on E: Exception do
+      MessageDlg(E.Message, mtInformation, [mbOK], 0);
   end;
 end;
 
@@ -748,19 +828,53 @@ end;
 
 procedure TGit4DProjectMenuNotifier.AddMenu(const Project: IOTAProject; const IdentList: TStrings;
   const ProjectManagerMenuList: IInterfaceList; IsMultiSelect: Boolean);
+const
+  cGit4DProjectRootName = 'Git4DProjectRoot';
+var
+  LCommitMenu: TGit4DProjectMenuItem;
+  LDiffMenu: TGit4DProjectMenuItem;
+  LHistoryMenu: TGit4DProjectMenuItem;
+  LPullMenu: TGit4DProjectMenuItem;
+  LPushMenu: TGit4DProjectMenuItem;
+  LRootMenu: TGit4DProjectMenuItem;
+  LStatusMenu: TGit4DProjectMenuItem;
 begin
-  ProjectManagerMenuList.Add(TGit4DProjectMenuItem.Create(pmStatus,
-    cG4DProductName + ': Status', 'Git4DProjectStatus') as IOTAProjectManagerMenu);
-  ProjectManagerMenuList.Add(TGit4DProjectMenuItem.Create(pmCommit,
-    cG4DProductName + ': Commit', 'Git4DProjectCommit') as IOTAProjectManagerMenu);
-  ProjectManagerMenuList.Add(TGit4DProjectMenuItem.Create(pmPull,
-    cG4DProductName + ': Pull', 'Git4DProjectPull') as IOTAProjectManagerMenu);
-  ProjectManagerMenuList.Add(TGit4DProjectMenuItem.Create(pmPush,
-    cG4DProductName + ': Push', 'Git4DProjectPush') as IOTAProjectManagerMenu);
-  ProjectManagerMenuList.Add(TGit4DProjectMenuItem.Create(pmDiff,
-    cG4DProductName + ': Diff Current File', 'Git4DProjectDiff') as IOTAProjectManagerMenu);
-  ProjectManagerMenuList.Add(TGit4DProjectMenuItem.Create(pmHistory,
-    cG4DProductName + ': File History', 'Git4DProjectHistory') as IOTAProjectManagerMenu);
+  if not IsProjectManagerSelectionSupported(IdentList) then
+    Exit;
+
+  LRootMenu := TGit4DProjectMenuItem.Create(pmRoot, cG4DProductName, cGit4DProjectRootName);
+  LRootMenu.SetPosition(1000);
+  ProjectManagerMenuList.Add(LRootMenu as IOTAProjectManagerMenu);
+
+  LStatusMenu := TGit4DProjectMenuItem.Create(pmStatus,
+    cG4DProductName + ': Status', 'Git4DProjectStatus');
+  LStatusMenu.SetParent(cGit4DProjectRootName);
+  ProjectManagerMenuList.Add(LStatusMenu as IOTAProjectManagerMenu);
+
+  LCommitMenu := TGit4DProjectMenuItem.Create(pmCommit,
+    cG4DProductName + ': Commit', 'Git4DProjectCommit');
+  LCommitMenu.SetParent(cGit4DProjectRootName);
+  ProjectManagerMenuList.Add(LCommitMenu as IOTAProjectManagerMenu);
+
+  LPullMenu := TGit4DProjectMenuItem.Create(pmPull,
+    cG4DProductName + ': Pull', 'Git4DProjectPull');
+  LPullMenu.SetParent(cGit4DProjectRootName);
+  ProjectManagerMenuList.Add(LPullMenu as IOTAProjectManagerMenu);
+
+  LPushMenu := TGit4DProjectMenuItem.Create(pmPush,
+    cG4DProductName + ': Push', 'Git4DProjectPush');
+  LPushMenu.SetParent(cGit4DProjectRootName);
+  ProjectManagerMenuList.Add(LPushMenu as IOTAProjectManagerMenu);
+
+  LDiffMenu := TGit4DProjectMenuItem.Create(pmDiff,
+    cG4DProductName + ': Diff Current File', 'Git4DProjectDiff');
+  LDiffMenu.SetParent(cGit4DProjectRootName);
+  ProjectManagerMenuList.Add(LDiffMenu as IOTAProjectManagerMenu);
+
+  LHistoryMenu := TGit4DProjectMenuItem.Create(pmHistory,
+    cG4DProductName + ': File History', 'Git4DProjectHistory');
+  LHistoryMenu.SetParent(cGit4DProjectRootName);
+  ProjectManagerMenuList.Add(LHistoryMenu as IOTAProjectManagerMenu);
 end;
 
 procedure TGit4DProjectMenuNotifier.AddProjectCommand(Menu: TMenuItem;
@@ -906,7 +1020,7 @@ end;
 
 function TGit4DProjectMenuNotifier.CanHandle(const Ident: string): Boolean;
 begin
-  Result := True;
+  Result := FileExists(Ident) or DirectoryExists(Ident);
 end;
 
 procedure TGit4DProjectMenuNotifier.ProjectCommandClick(Sender: TObject);
@@ -1012,7 +1126,7 @@ constructor TGit4DWizard.Create;
 begin
   inherited Create;
   FActionList := TActionList.Create(nil);
-  FProjectMenuNotifierIndex := -1;
+  FProjectMenuLegacyNotifierIndex := -1;
   try
     InstallMainMenu;
   except
@@ -1033,12 +1147,9 @@ end;
 destructor TGit4DWizard.Destroy;
 begin
   UninstallEditorLocalMenu;
-  if FProjectMenuNotifierIndex >= 0 then
+  if FProjectMenuLegacyNotifierIndex >= 0 then
     try
-      if FProjectMenuUsesLegacyNotifier then
-        (BorlandIDEServices as IOTAProjectManager).RemoveMenuCreatorNotifier(FProjectMenuNotifierIndex)
-      else
-        (BorlandIDEServices as IOTAProjectManager).RemoveMenuItemCreatorNotifier(FProjectMenuNotifierIndex);
+      (BorlandIDEServices as IOTAProjectManager).RemoveMenuCreatorNotifier(FProjectMenuLegacyNotifierIndex);
     except
     end;
   if (FMainMenu <> nil) and (FMainMenu.Parent <> nil) then
@@ -1664,6 +1775,9 @@ begin
   if LExternalMenuAdded then
     LRootMenu.Add(CreateSeparator);
   AddGitSubMenu(LRootMenu);
+  LRootMenu.Add(CreateSeparator);
+  LRootMenu.Add(CreateActionItem('Se&ttings', ShowSettings));
+  LRootMenu.Add(CreateActionItem('&About', ShowAbout));
 
   if LRootMenu.Count = 0 then
     LRootMenu.Enabled := False;
@@ -1697,18 +1811,15 @@ procedure TGit4DWizard.InstallProjectManagerMenu;
 var
   LProjectManager: IOTAProjectManager;
 begin
-  if FProjectMenuNotifierIndex >= 0 then
+  if FProjectMenuLegacyNotifierIndex >= 0 then
     Exit;
 
   if Supports(BorlandIDEServices, IOTAProjectManager, LProjectManager) then
   begin
     FProjectMenuNotifier := TGit4DProjectMenuNotifier.Create;
     try
-      FProjectMenuNotifierIndex := LProjectManager.AddMenuItemCreatorNotifier(FProjectMenuNotifier);
-      FProjectMenuUsesLegacyNotifier := False;
+      FProjectMenuLegacyNotifierIndex := LProjectManager.AddMenuCreatorNotifier(FProjectMenuNotifier);
     except
-      FProjectMenuNotifierIndex := LProjectManager.AddMenuCreatorNotifier(FProjectMenuNotifier);
-      FProjectMenuUsesLegacyNotifier := True;
     end;
   end;
 end;

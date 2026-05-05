@@ -10,6 +10,7 @@ type
   public
     class procedure OpenTerminal(const Repository: TGit4DRepository);
     class procedure RunGitConsole(const Repository: TGit4DRepository; const Arguments: string); static;
+    class procedure RunGitForFile(const Repository: TGit4DRepository; const ArgumentsBeforeFile: string); static;
     class procedure RunGitForActiveRepository(const Arguments: string); static;
     class procedure RunGitForActiveFile(const ArgumentsBeforeFile: string); static;
     class procedure DiffActiveFile;
@@ -92,19 +93,25 @@ begin
   end;
 end;
 
-class procedure TGit4DGit.RunGitForActiveFile(const ArgumentsBeforeFile: string);
+class procedure TGit4DGit.RunGitForFile(const Repository: TGit4DRepository; const ArgumentsBeforeFile: string);
 var
   LRelativeFileName: string;
+begin
+  RequireRepository(Repository);
+  if Repository.ActiveFileName = '' then
+    raise Exception.Create('No active editor file was found.');
+
+  LRelativeFileName := ExtractRelativePath(IncludeTrailingPathDelimiter(Repository.RootPath), Repository.ActiveFileName);
+  RunGitConsole(Repository, ArgumentsBeforeFile + ' -- ' + Quote(LRelativeFileName));
+end;
+
+class procedure TGit4DGit.RunGitForActiveFile(const ArgumentsBeforeFile: string);
+var
   LRepository: TGit4DRepository;
 begin
   try
     LRepository := DiscoverActiveRepository;
-    RequireRepository(LRepository);
-    if LRepository.ActiveFileName = '' then
-      raise Exception.Create('No active editor file was found.');
-
-    LRelativeFileName := ExtractRelativePath(IncludeTrailingPathDelimiter(LRepository.RootPath), LRepository.ActiveFileName);
-    RunGitConsole(LRepository, ArgumentsBeforeFile + ' -- ' + Quote(LRelativeFileName));
+    RunGitForFile(LRepository, ArgumentsBeforeFile);
   except
     on E: Exception do
       MessageDlg(E.Message, mtInformation, [mbOK], 0);
