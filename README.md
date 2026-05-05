@@ -29,6 +29,10 @@ What you get there:
 - `Settings`
 - `About`
 
+<img width="648" height="581" alt="image" src="https://github.com/user-attachments/assets/135b923d-826e-49bf-9017-0a350d7e856c" />
+<img width="628" height="971" alt="image" src="https://github.com/user-attachments/assets/5361e22a-a244-4ef8-a7f2-a1a49114c0ef" />
+
+
 ### Options Page
 
 Git4D also adds its own configuration page inside RAD Studio:
@@ -45,6 +49,8 @@ From there you can configure:
 - background fetch behavior
 - external client executable paths
 - enabling or disabling external client submenus
+
+<img width="996" height="709" alt="image" src="https://github.com/user-attachments/assets/43b3ee48-4c89-4c28-9238-3c2f305d0410" />
 
 ## Core Built-In Commands
 
@@ -122,7 +128,6 @@ Git4D stores user settings in:
 
 - `Git4D\Git4D.ini`
 
-Legacy settings from the older SmartGitInsight name are migrated automatically when found.
 
 ## Current Direction
 
@@ -142,6 +147,8 @@ Likely future improvements:
 - External-client integrations remain optional.
 - Menu behavior can vary slightly across RAD Studio versions because of ToolsAPI differences.
 
----
-
-Made for RAD Studio, Delphi, and C++Builder workflows.
+<hr>
+<p align="center">
+<img src="https://i0.wp.com/blogs.embarcadero.com/wp-content/uploads/2022/11/dlogonew-5582740.png?resize=254%2C242&ssl=1" alt="Delphi">
+</p>
+<h5 align="center">
