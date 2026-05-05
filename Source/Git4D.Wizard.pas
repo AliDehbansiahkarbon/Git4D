@@ -264,60 +264,60 @@ end;
 
 procedure TintBitmapForDarkMenu(Bitmap: Vcl.Graphics.TBitmap);
 var
-  ColorValue: TColor;
-  X: Integer;
-  Y: Integer;
+  LColorValue: TColor;
+  LX: Integer;
+  LY: Integer;
 begin
   if Bitmap = nil then
     Exit;
 
   Bitmap.PixelFormat := pf32bit;
-  for Y := 0 to Bitmap.Height - 1 do
-    for X := 0 to Bitmap.Width - 1 do
+  for LY := 0 to Bitmap.Height - 1 do
+    for LX := 0 to Bitmap.Width - 1 do
     begin
-      ColorValue := Bitmap.Canvas.Pixels[X, Y];
-      if (ColorValue <> Bitmap.TransparentColor) and
-        (GetRValue(ColorToRGB(ColorValue)) < 80) and
-        (GetGValue(ColorToRGB(ColorValue)) < 80) and
-        (GetBValue(ColorToRGB(ColorValue)) < 80) then
-        Bitmap.Canvas.Pixels[X, Y] := TColor(G4DMenuIconColor);
+      LColorValue := Bitmap.Canvas.Pixels[LX, LY];
+      if (LColorValue <> Bitmap.TransparentColor) and
+        (GetRValue(ColorToRGB(LColorValue)) < 80) and
+        (GetGValue(ColorToRGB(LColorValue)) < 80) and
+        (GetBValue(ColorToRGB(LColorValue)) < 80) then
+        Bitmap.Canvas.Pixels[LX, LY] := TColor(G4DMenuIconColor);
     end;
 end;
 
 function CreateBitmapFromPngResource(const ResourceName: string): Vcl.Graphics.TBitmap;
 var
-  Bitmap: Vcl.Graphics.TBitmap;
-  Png: TPngImage;
-  Stream: TResourceStream;
+  LBitmap: Vcl.Graphics.TBitmap;
+  LPng: TPngImage;
+  LStream: TResourceStream;
 begin
   Result := nil;
   if ResourceName = '' then
     Exit;
 
-  Stream := TResourceStream.Create(HInstance, ResourceName, RT_RCDATA);
+  LStream := TResourceStream.Create(HInstance, ResourceName, RT_RCDATA);
   try
-    Png := TPngImage.Create;
+    LPng := TPngImage.Create;
     try
-      Png.LoadFromStream(Stream);
-      Bitmap := Vcl.Graphics.TBitmap.Create;
+      LPng.LoadFromStream(LStream);
+      LBitmap := Vcl.Graphics.TBitmap.Create;
       try
-        Bitmap.SetSize(Png.Width, Png.Height);
-        Bitmap.Transparent := True;
-        Bitmap.Canvas.Brush.Color := clFuchsia;
-        Bitmap.Canvas.FillRect(Rect(0, 0, Bitmap.Width, Bitmap.Height));
-        Bitmap.TransparentColor := clFuchsia;
-        Bitmap.Canvas.Draw(0, 0, Png);
-        TintBitmapForDarkMenu(Bitmap);
-        Result := Bitmap;
-        Bitmap := nil;
+        LBitmap.SetSize(LPng.Width, LPng.Height);
+        LBitmap.Transparent := True;
+        LBitmap.Canvas.Brush.Color := clFuchsia;
+        LBitmap.Canvas.FillRect(Rect(0, 0, LBitmap.Width, LBitmap.Height));
+        LBitmap.TransparentColor := clFuchsia;
+        LBitmap.Canvas.Draw(0, 0, LPng);
+        TintBitmapForDarkMenu(LBitmap);
+        Result := LBitmap;
+        LBitmap := nil;
       finally
-        Bitmap.Free;
+        LBitmap.Free;
       end;
     finally
-      Png.Free;
+      LPng.Free;
     end;
   finally
-    Stream.Free;
+    LStream.Free;
   end;
 end;
 
@@ -334,18 +334,18 @@ end;
 
 function GetMenuIconIndex(AKey: TGit4DMenuIconKey): Integer;
 var
-  Bitmap: Vcl.Graphics.TBitmap;
+  LBitmap: Vcl.Graphics.TBitmap;
 begin
   Result := GMenuIconIndexes[AKey];
   if (AKey = mikNone) or (Result >= 0) then
     Exit;
 
-  Bitmap := CreateBitmapFromPngResource(MenuIconResourceName(AKey));
+  LBitmap := CreateBitmapFromPngResource(MenuIconResourceName(AKey));
   try
-    if Bitmap <> nil then
-      GMenuIconIndexes[AKey] := GetMenuImages.AddMasked(Bitmap, clFuchsia);
+    if LBitmap <> nil then
+      GMenuIconIndexes[AKey] := GetMenuImages.AddMasked(LBitmap, clFuchsia);
   finally
-    Bitmap.Free;
+    LBitmap.Free;
   end;
   Result := GMenuIconIndexes[AKey];
 end;
@@ -468,43 +468,43 @@ end;
 
 function InternalGitIconKey(const Caption: string): TGit4DMenuIconKey;
 var
-  Normalized: string;
+  LNormalized: string;
 begin
-  Normalized := NormalizedCaption(Caption);
-  if SameText(Normalized, 'Browse Repository') or SameText(Normalized, 'Open Repository') then
+  LNormalized := NormalizedCaption(Caption);
+  if SameText(LNormalized, 'Browse Repository') or SameText(LNormalized, 'Open Repository') then
     Exit(mikFolderOpen);
-  if SameText(Normalized, 'Commit') then
+  if SameText(LNormalized, 'Commit') then
     Exit(mikCommit);
-  if SameText(Normalized, 'Pull') or SameText(Normalized, 'Fetch') then
+  if SameText(LNormalized, 'Pull') or SameText(LNormalized, 'Fetch') then
     Exit(mikPull);
-  if SameText(Normalized, 'Push') then
+  if SameText(LNormalized, 'Push') then
     Exit(mikPush);
-  if SameText(Normalized, 'Stash') then
+  if SameText(LNormalized, 'Stash') then
     Exit(mikRebase);
-  if (Pos('Diff', Normalized) > 0) or SameText(Normalized, 'Edit .gitignore') or
-    SameText(Normalized, 'Apply Patch') or SameText(Normalized, 'Format Patch') then
+  if (Pos('Diff', LNormalized) > 0) or SameText(LNormalized, 'Edit .gitignore') or
+    SameText(LNormalized, 'Apply Patch') or SameText(LNormalized, 'Format Patch') then
     Exit(mikDiff);
-  if Pos('History', Normalized) > 0 then
+  if Pos('History', LNormalized) > 0 then
     Exit(mikHistory);
-  if Pos('Blame', Normalized) > 0 then
+  if Pos('Blame', LNormalized) > 0 then
     Exit(mikInfo);
-  if Pos('Stage', Normalized) > 0 then
+  if Pos('Stage', LNormalized) > 0 then
     Exit(mikAdd);
-  if Pos('Reset', Normalized) > 0 then
+  if Pos('Reset', LNormalized) > 0 then
     Exit(mikRestore);
-  if (Pos('Branch', Normalized) > 0) or SameText(Normalized, 'Manage Remotes') then
+  if (Pos('Branch', LNormalized) > 0) or SameText(LNormalized, 'Manage Remotes') then
     Exit(mikBranch);
-  if Pos('Checkout', Normalized) > 0 then
+  if Pos('Checkout', LNormalized) > 0 then
     Exit(mikCheckout);
-  if Pos('Merge', Normalized) > 0 then
+  if Pos('Merge', LNormalized) > 0 then
     Exit(mikMerge);
-  if Pos('Rebase', Normalized) > 0 then
+  if Pos('Rebase', LNormalized) > 0 then
     Exit(mikRebase);
-  if SameText(Normalized, 'Settings') then
+  if SameText(LNormalized, 'Settings') then
     Exit(mikSettings);
-  if SameText(Normalized, 'Help') then
+  if SameText(LNormalized, 'Help') then
     Exit(mikHelp);
-  if SameText(Normalized, 'About') then
+  if SameText(LNormalized, 'About') then
     Exit(mikInfo);
   Result := mikNone;
 end;
@@ -531,14 +531,14 @@ end;
 
 procedure ApplyMenuIcon(Item: TMenuItem; AKey: TGit4DMenuIconKey);
 var
-  ImageIndex: Integer;
+  LImageIndex: Integer;
 begin
   if Item = nil then
     Exit;
 
-  ImageIndex := GetMenuIconIndex(AKey);
-  if ImageIndex >= 0 then
-    Item.ImageIndex := ImageIndex;
+  LImageIndex := GetMenuIconIndex(AKey);
+  if LImageIndex >= 0 then
+    Item.ImageIndex := LImageIndex;
 end;
 
 constructor TGit4DEditorPopupHook.Create(AWizard: TGit4DWizard; APopupMenu: TPopupMenu);
@@ -585,18 +585,18 @@ end;
 
 function TGit4DEditorPopupHook.IsHooked: Boolean;
 var
-  CurrentMethod: TMethod;
-  HookEvent: TNotifyEvent;
-  HookMethod: TMethod;
+  LCurrentMethod: TMethod;
+  LHookEvent: TNotifyEvent;
+  LHookMethod: TMethod;
 begin
   Result := False;
   if FPopupMenu = nil then
     Exit;
 
-  CurrentMethod := TMethod(FPopupMenu.OnPopup);
-  HookEvent := PopupOpening;
-  HookMethod := TMethod(HookEvent);
-  Result := (CurrentMethod.Code = HookMethod.Code) and (CurrentMethod.Data = HookMethod.Data);
+  LCurrentMethod := TMethod(FPopupMenu.OnPopup);
+  LHookEvent := PopupOpening;
+  LHookMethod := TMethod(LHookEvent);
+  Result := (LCurrentMethod.Code = LHookMethod.Code) and (LCurrentMethod.Data = LHookMethod.Data);
 end;
 
 procedure TGit4DEditorPopupHook.PopupOpening(Sender: TObject);
@@ -766,133 +766,133 @@ end;
 procedure TGit4DProjectMenuNotifier.AddProjectCommand(Menu: TMenuItem;
   AKind: TGit4DProjectMenuKind; const ACaption: string);
 var
-  Item: TMenuItem;
+  LItem: TMenuItem;
 begin
-  Item := TMenuItem.Create(Menu);
-  Item.Caption := ACaption;
-  Item.Tag := Ord(AKind);
-  Item.OnClick := ProjectCommandClick;
-  ApplyMenuIcon(Item, ProjectMenuKindIconKey(AKind));
-  Menu.Add(Item);
+  LItem := TMenuItem.Create(Menu);
+  LItem.Caption := ACaption;
+  LItem.Tag := Ord(AKind);
+  LItem.OnClick := ProjectCommandClick;
+  ApplyMenuIcon(LItem, ProjectMenuKindIconKey(AKind));
+  Menu.Add(LItem);
 end;
 
 procedure TGit4DProjectMenuNotifier.AddProjectSeparator(Menu: TMenuItem);
 var
-  Item: TMenuItem;
+  LItem: TMenuItem;
 begin
-  Item := TMenuItem.Create(Menu);
-  Item.Caption := '-';
-  Menu.Add(Item);
+  LItem := TMenuItem.Create(Menu);
+  LItem.Caption := '-';
+  Menu.Add(LItem);
 end;
 
 procedure TGit4DProjectMenuNotifier.AddProjectGitExtensionsCommand(Menu: TMenuItem;
   Command: TGitExtensionsCommand);
 var
-  Item: TMenuItem;
+  LItem: TMenuItem;
 begin
-  Item := TMenuItem.Create(Menu);
-  Item.Caption := TGit4DGitExtensions.CommandDisplayName(Command);
-  Item.Tag := Ord(Command);
-  Item.HelpContext := Ord(Command);
-  Item.OnClick := ProjectGitExtensionsClick;
-  ApplyMenuIcon(Item, GitExtensionsIconKey(Command));
-  Menu.Add(Item);
+  LItem := TMenuItem.Create(Menu);
+  LItem.Caption := TGit4DGitExtensions.CommandDisplayName(Command);
+  LItem.Tag := Ord(Command);
+  LItem.HelpContext := Ord(Command);
+  LItem.OnClick := ProjectGitExtensionsClick;
+  ApplyMenuIcon(LItem, GitExtensionsIconKey(Command));
+  Menu.Add(LItem);
 end;
 
 procedure TGit4DProjectMenuNotifier.AddProjectTortoiseGitCommand(Menu: TMenuItem;
   Command: TTortoiseGitCommand);
 var
-  Item: TMenuItem;
+  LItem: TMenuItem;
 begin
-  Item := TMenuItem.Create(Menu);
-  Item.Caption := TGit4DTortoiseGit.CommandDisplayName(Command);
-  Item.Tag := Ord(Command);
-  Item.HelpContext := Ord(Command);
-  Item.OnClick := ProjectTortoiseGitClick;
-  ApplyMenuIcon(Item, TortoiseGitIconKey(Command));
-  Menu.Add(Item);
+  LItem := TMenuItem.Create(Menu);
+  LItem.Caption := TGit4DTortoiseGit.CommandDisplayName(Command);
+  LItem.Tag := Ord(Command);
+  LItem.HelpContext := Ord(Command);
+  LItem.OnClick := ProjectTortoiseGitClick;
+  ApplyMenuIcon(LItem, TortoiseGitIconKey(Command));
+  Menu.Add(LItem);
 end;
 
 procedure TGit4DProjectMenuNotifier.AddProjectTortoiseSvnCommand(Menu: TMenuItem;
   Command: TTortoiseSvnCommand);
 var
-  Item: TMenuItem;
+  LItem: TMenuItem;
 begin
-  Item := TMenuItem.Create(Menu);
-  Item.Caption := TGit4DTortoiseSVN.CommandDisplayName(Command);
-  Item.Tag := Ord(Command);
-  Item.HelpContext := Ord(Command);
-  Item.OnClick := ProjectTortoiseSvnClick;
-  ApplyMenuIcon(Item, TortoiseSvnIconKey(Command));
-  Menu.Add(Item);
+  LItem := TMenuItem.Create(Menu);
+  LItem.Caption := TGit4DTortoiseSVN.CommandDisplayName(Command);
+  LItem.Tag := Ord(Command);
+  LItem.HelpContext := Ord(Command);
+  LItem.OnClick := ProjectTortoiseSvnClick;
+  ApplyMenuIcon(LItem, TortoiseSvnIconKey(Command));
+  Menu.Add(LItem);
 end;
 
 function TGit4DProjectMenuNotifier.AddMenu(const Ident: string): TMenuItem;
 var
-  ExternalMenuAdded: Boolean;
-  GitExtensionsMenu: TMenuItem;
-  TortoiseMenu: TMenuItem;
-  TortoiseSvnMenu: TMenuItem;
+  LExternalMenuAdded: Boolean;
+  LGitExtensionsMenu: TMenuItem;
+  LTortoiseMenu: TMenuItem;
+  LTortoiseSvnMenu: TMenuItem;
 begin
   Result := TMenuItem.Create(nil);
   Result.Caption := cG4DProductName;
   Result.SubMenuImages := GetMenuImages;
 
-  ExternalMenuAdded := False;
+  LExternalMenuAdded := False;
   if Git4DSettings.TortoiseSvnEnabled then
   begin
-    TortoiseSvnMenu := TMenuItem.Create(Result);
-    TortoiseSvnMenu.Caption := 'TortoiseSVN';
-    TortoiseSvnMenu.SubMenuImages := GetMenuImages;
-    AddProjectTortoiseSvnCommand(TortoiseSvnMenu, svnLog);
-    AddProjectTortoiseSvnCommand(TortoiseSvnMenu, svnDiff);
-    AddProjectTortoiseSvnCommand(TortoiseSvnMenu, svnBlame);
-    AddProjectTortoiseSvnCommand(TortoiseSvnMenu, svnCommit);
-    AddProjectTortoiseSvnCommand(TortoiseSvnMenu, svnUpdate);
-    AddProjectTortoiseSvnCommand(TortoiseSvnMenu, svnCheckForModifications);
-    AddProjectTortoiseSvnCommand(TortoiseSvnMenu, svnRepoBrowser);
-    AddProjectTortoiseSvnCommand(TortoiseSvnMenu, svnSettings);
-    Result.Add(TortoiseSvnMenu);
-    ExternalMenuAdded := True;
+    LTortoiseSvnMenu := TMenuItem.Create(Result);
+    LTortoiseSvnMenu.Caption := 'TortoiseSVN';
+    LTortoiseSvnMenu.SubMenuImages := GetMenuImages;
+    AddProjectTortoiseSvnCommand(LTortoiseSvnMenu, svnLog);
+    AddProjectTortoiseSvnCommand(LTortoiseSvnMenu, svnDiff);
+    AddProjectTortoiseSvnCommand(LTortoiseSvnMenu, svnBlame);
+    AddProjectTortoiseSvnCommand(LTortoiseSvnMenu, svnCommit);
+    AddProjectTortoiseSvnCommand(LTortoiseSvnMenu, svnUpdate);
+    AddProjectTortoiseSvnCommand(LTortoiseSvnMenu, svnCheckForModifications);
+    AddProjectTortoiseSvnCommand(LTortoiseSvnMenu, svnRepoBrowser);
+    AddProjectTortoiseSvnCommand(LTortoiseSvnMenu, svnSettings);
+    Result.Add(LTortoiseSvnMenu);
+    LExternalMenuAdded := True;
   end;
 
   if Git4DSettings.TortoiseGitEnabled then
   begin
-    TortoiseMenu := TMenuItem.Create(Result);
-    TortoiseMenu.Caption := 'TortoiseGit';
-    TortoiseMenu.SubMenuImages := GetMenuImages;
-    AddProjectTortoiseGitCommand(TortoiseMenu, tgLog);
-    AddProjectTortoiseGitCommand(TortoiseMenu, tgDiff);
-    AddProjectTortoiseGitCommand(TortoiseMenu, tgCommit);
-    AddProjectTortoiseGitCommand(TortoiseMenu, tgPull);
-    AddProjectTortoiseGitCommand(TortoiseMenu, tgPush);
-    AddProjectTortoiseGitCommand(TortoiseMenu, tgSync);
-    AddProjectTortoiseGitCommand(TortoiseMenu, tgReflog);
-    AddProjectTortoiseGitCommand(TortoiseMenu, tgRepoBrowser);
-    AddProjectTortoiseGitCommand(TortoiseMenu, tgSettings);
-    Result.Add(TortoiseMenu);
-    ExternalMenuAdded := True;
+    LTortoiseMenu := TMenuItem.Create(Result);
+    LTortoiseMenu.Caption := 'TortoiseGit';
+    LTortoiseMenu.SubMenuImages := GetMenuImages;
+    AddProjectTortoiseGitCommand(LTortoiseMenu, tgLog);
+    AddProjectTortoiseGitCommand(LTortoiseMenu, tgDiff);
+    AddProjectTortoiseGitCommand(LTortoiseMenu, tgCommit);
+    AddProjectTortoiseGitCommand(LTortoiseMenu, tgPull);
+    AddProjectTortoiseGitCommand(LTortoiseMenu, tgPush);
+    AddProjectTortoiseGitCommand(LTortoiseMenu, tgSync);
+    AddProjectTortoiseGitCommand(LTortoiseMenu, tgReflog);
+    AddProjectTortoiseGitCommand(LTortoiseMenu, tgRepoBrowser);
+    AddProjectTortoiseGitCommand(LTortoiseMenu, tgSettings);
+    Result.Add(LTortoiseMenu);
+    LExternalMenuAdded := True;
   end;
 
   if Git4DSettings.GitExtensionsEnabled then
   begin
-    GitExtensionsMenu := TMenuItem.Create(Result);
-    GitExtensionsMenu.Caption := 'Git Extensions';
-    GitExtensionsMenu.SubMenuImages := GetMenuImages;
-    AddProjectGitExtensionsCommand(GitExtensionsMenu, geBrowse);
-    AddProjectGitExtensionsCommand(GitExtensionsMenu, geCommit);
-    AddProjectGitExtensionsCommand(GitExtensionsMenu, gePull);
-    AddProjectGitExtensionsCommand(GitExtensionsMenu, gePush);
-    AddProjectGitExtensionsCommand(GitExtensionsMenu, geSynchronize);
-    AddProjectGitExtensionsCommand(GitExtensionsMenu, geFileHistory);
-    AddProjectGitExtensionsCommand(GitExtensionsMenu, geBlame);
-    AddProjectGitExtensionsCommand(GitExtensionsMenu, geDiffTool);
-    AddProjectGitExtensionsCommand(GitExtensionsMenu, geSettings);
-    Result.Add(GitExtensionsMenu);
-    ExternalMenuAdded := True;
+    LGitExtensionsMenu := TMenuItem.Create(Result);
+    LGitExtensionsMenu.Caption := 'Git Extensions';
+    LGitExtensionsMenu.SubMenuImages := GetMenuImages;
+    AddProjectGitExtensionsCommand(LGitExtensionsMenu, geBrowse);
+    AddProjectGitExtensionsCommand(LGitExtensionsMenu, geCommit);
+    AddProjectGitExtensionsCommand(LGitExtensionsMenu, gePull);
+    AddProjectGitExtensionsCommand(LGitExtensionsMenu, gePush);
+    AddProjectGitExtensionsCommand(LGitExtensionsMenu, geSynchronize);
+    AddProjectGitExtensionsCommand(LGitExtensionsMenu, geFileHistory);
+    AddProjectGitExtensionsCommand(LGitExtensionsMenu, geBlame);
+    AddProjectGitExtensionsCommand(LGitExtensionsMenu, geDiffTool);
+    AddProjectGitExtensionsCommand(LGitExtensionsMenu, geSettings);
+    Result.Add(LGitExtensionsMenu);
+    LExternalMenuAdded := True;
   end;
 
-  if ExternalMenuAdded then
+  if LExternalMenuAdded then
     AddProjectSeparator(Result);
 
   AddProjectCommand(Result, pmStatus, 'Status');
@@ -911,13 +911,13 @@ end;
 
 procedure TGit4DProjectMenuNotifier.ProjectCommandClick(Sender: TObject);
 var
-  Kind: TGit4DProjectMenuKind;
+  LKind: TGit4DProjectMenuKind;
 begin
   if not (Sender is TMenuItem) then
     Exit;
 
-  Kind := TGit4DProjectMenuKind((Sender as TMenuItem).Tag);
-  case Kind of
+  LKind := TGit4DProjectMenuKind((Sender as TMenuItem).Tag);
+  case LKind of
     pmStatus:
       TGit4DGit.RunGitForActiveRepository('status --short --branch');
     pmCommit:
@@ -935,23 +935,23 @@ end;
 
 procedure TGit4DProjectMenuNotifier.ProjectGitExtensionsClick(Sender: TObject);
 var
-  Command: TGitExtensionsCommand;
-  CommandOrdinal: Integer;
+  LCommand: TGitExtensionsCommand;
+  LCommandOrdinal: Integer;
 begin
   try
     if not (Sender is TMenuItem) then
       Exit;
 
-    CommandOrdinal := (Sender as TMenuItem).HelpContext;
-    if (CommandOrdinal < Ord(Low(TGitExtensionsCommand))) or
-      (CommandOrdinal > Ord(High(TGitExtensionsCommand))) then
-      raise Exception.CreateFmt('Invalid Git Extensions command id: %d', [CommandOrdinal]);
+    LCommandOrdinal := (Sender as TMenuItem).HelpContext;
+    if (LCommandOrdinal < Ord(Low(TGitExtensionsCommand))) or
+      (LCommandOrdinal > Ord(High(TGitExtensionsCommand))) then
+      raise Exception.CreateFmt('Invalid Git Extensions command id: %d', [LCommandOrdinal]);
 
-    Command := TGitExtensionsCommand(CommandOrdinal);
-    if Command in [geAdd, geApply, geBlame, geDiffTool, geFileEditor, geFileHistory, geRevert, geViewPatch] then
-      TGit4DGitExtensions.RunForActiveFile(Command)
+    LCommand := TGitExtensionsCommand(LCommandOrdinal);
+    if LCommand in [geAdd, geApply, geBlame, geDiffTool, geFileEditor, geFileHistory, geRevert, geViewPatch] then
+      TGit4DGitExtensions.RunForActiveFile(LCommand)
     else
-      TGit4DGitExtensions.RunForActiveRepository(Command);
+      TGit4DGitExtensions.RunForActiveRepository(LCommand);
   except
     on E: Exception do
       MessageDlg(E.Message, mtError, [mbOK], 0);
@@ -960,23 +960,23 @@ end;
 
 procedure TGit4DProjectMenuNotifier.ProjectTortoiseGitClick(Sender: TObject);
 var
-  Command: TTortoiseGitCommand;
-  CommandOrdinal: Integer;
+  LCommand: TTortoiseGitCommand;
+  LCommandOrdinal: Integer;
 begin
   try
     if not (Sender is TMenuItem) then
       Exit;
 
-    CommandOrdinal := (Sender as TMenuItem).HelpContext;
-    if (CommandOrdinal < Ord(Low(TTortoiseGitCommand))) or
-      (CommandOrdinal > Ord(High(TTortoiseGitCommand))) then
-      raise Exception.CreateFmt('Invalid TortoiseGit command id: %d', [CommandOrdinal]);
+    LCommandOrdinal := (Sender as TMenuItem).HelpContext;
+    if (LCommandOrdinal < Ord(Low(TTortoiseGitCommand))) or
+      (LCommandOrdinal > Ord(High(TTortoiseGitCommand))) then
+      raise Exception.CreateFmt('Invalid TortoiseGit command id: %d', [LCommandOrdinal]);
 
-    Command := TTortoiseGitCommand(CommandOrdinal);
-    if Command in [tgDiff, tgPreviousDiff, tgBlame, tgResolve] then
-      TGit4DTortoiseGit.RunForActiveFile(Command)
+    LCommand := TTortoiseGitCommand(LCommandOrdinal);
+    if LCommand in [tgDiff, tgPreviousDiff, tgBlame, tgResolve] then
+      TGit4DTortoiseGit.RunForActiveFile(LCommand)
     else
-      TGit4DTortoiseGit.RunForActiveRepository(Command);
+      TGit4DTortoiseGit.RunForActiveRepository(LCommand);
   except
     on E: Exception do
       MessageDlg(E.Message, mtError, [mbOK], 0);
@@ -985,23 +985,23 @@ end;
 
 procedure TGit4DProjectMenuNotifier.ProjectTortoiseSvnClick(Sender: TObject);
 var
-  Command: TTortoiseSvnCommand;
-  CommandOrdinal: Integer;
+  LCommand: TTortoiseSvnCommand;
+  LCommandOrdinal: Integer;
 begin
   try
     if not (Sender is TMenuItem) then
       Exit;
 
-    CommandOrdinal := (Sender as TMenuItem).HelpContext;
-    if (CommandOrdinal < Ord(Low(TTortoiseSvnCommand))) or
-      (CommandOrdinal > Ord(High(TTortoiseSvnCommand))) then
-      raise Exception.CreateFmt('Invalid TortoiseSVN command id: %d', [CommandOrdinal]);
+    LCommandOrdinal := (Sender as TMenuItem).HelpContext;
+    if (LCommandOrdinal < Ord(Low(TTortoiseSvnCommand))) or
+      (LCommandOrdinal > Ord(High(TTortoiseSvnCommand))) then
+      raise Exception.CreateFmt('Invalid TortoiseSVN command id: %d', [LCommandOrdinal]);
 
-    Command := TTortoiseSvnCommand(CommandOrdinal);
-    if Command in [svnDiff, svnPreviousDiff, svnBlame, svnResolved] then
-      TGit4DTortoiseSVN.RunForActiveFile(Command)
+    LCommand := TTortoiseSvnCommand(LCommandOrdinal);
+    if LCommand in [svnDiff, svnPreviousDiff, svnBlame, svnResolved] then
+      TGit4DTortoiseSVN.RunForActiveFile(LCommand)
     else
-      TGit4DTortoiseSVN.RunForActiveRepository(Command);
+      TGit4DTortoiseSVN.RunForActiveRepository(LCommand);
   except
     on E: Exception do
       MessageDlg(E.Message, mtError, [mbOK], 0);
@@ -1112,21 +1112,21 @@ end;
 
 procedure TGit4DWizard.ClearLegacyEditorLocalMenuRegistrations;
 var
-  EditorLocalMenu: INTAEditorLocalMenu;
-  EditorServices: IOTAEditorServices;
+  LEditorLocalMenu: INTAEditorLocalMenu;
+  LEditorServices: IOTAEditorServices;
 begin
   try
-    if Supports(BorlandIDEServices, IOTAEditorServices, EditorServices) then
+    if Supports(BorlandIDEServices, IOTAEditorServices, LEditorServices) then
     begin
-      EditorLocalMenu := EditorServices.GetEditorLocalMenu;
-      if EditorLocalMenu <> nil then
+      LEditorLocalMenu := LEditorServices.GetEditorLocalMenu;
+      if LEditorLocalMenu <> nil then
       begin
         try
-          EditorLocalMenu.UnregisterActionList(G4DLegacyEditorActionListCategory);
+          LEditorLocalMenu.UnregisterActionList(G4DLegacyEditorActionListCategory);
         except
         end;
         try
-          EditorLocalMenu.UnregisterActionList(G4DLegacyEditorActionListCategory2);
+          LEditorLocalMenu.UnregisterActionList(G4DLegacyEditorActionListCategory2);
         except
         end;
       end;
@@ -1137,12 +1137,12 @@ end;
 
 procedure TGit4DWizard.HookEditorPopups;
 var
-  ComponentIndex: Integer;
-  EditWindow: INTAEditWindow;
+  LComponentIndex: Integer;
+  LEditWindow: INTAEditWindow;
   Form: TCustomForm;
-  PopupMenu: TPopupMenu;
-  ServiceIndex: Integer;
-  Services: INTAEditorServices;
+  LPopupMenu: TPopupMenu;
+  LServiceIndex: Integer;
+  LServices: INTAEditorServices;
 begin
   if not Git4DSettings.EditorPopupEnabled then
     Exit;
@@ -1150,33 +1150,33 @@ begin
   if FEditorPopupHooks = nil then
     FEditorPopupHooks := TList.Create;
 
-  if not Supports(BorlandIDEServices, INTAEditorServices, Services) then
+  if not Supports(BorlandIDEServices, INTAEditorServices, LServices) then
     Exit;
 
-  for ServiceIndex := 0 to Services.GetEditWindowCount - 1 do
+  for LServiceIndex := 0 to LServices.GetEditWindowCount - 1 do
   begin
-    EditWindow := Services.GetEditWindow(ServiceIndex);
-    if EditWindow = nil then
+    LEditWindow := LServices.GetEditWindow(LServiceIndex);
+    if LEditWindow = nil then
       Continue;
 
-    Form := EditWindow.GetForm;
+    Form := LEditWindow.GetForm;
     if Form = nil then
       Continue;
 
-    for ComponentIndex := 0 to Form.ComponentCount - 1 do
-      if Form.Components[ComponentIndex] is TPopupMenu then
+    for LComponentIndex := 0 to Form.ComponentCount - 1 do
+      if Form.Components[LComponentIndex] is TPopupMenu then
       begin
-        PopupMenu := TPopupMenu(Form.Components[ComponentIndex]);
-        if IsCandidateEditorPopupMenu(PopupMenu) then
-          HookPopupMenu(PopupMenu);
+        LPopupMenu := TPopupMenu(Form.Components[LComponentIndex]);
+        if IsCandidateEditorPopupMenu(LPopupMenu) then
+          HookPopupMenu(LPopupMenu);
       end;
   end;
 end;
 
 procedure TGit4DWizard.HookPopupMenu(PopupMenu: TPopupMenu);
 var
-  Index: Integer;
-  Hook: TGit4DEditorPopupHook;
+  LHook: TGit4DEditorPopupHook;
+  LIndex: Integer;
 begin
   if PopupMenu = nil then
     Exit;
@@ -1184,17 +1184,17 @@ begin
   if FEditorPopupHooks = nil then
     FEditorPopupHooks := TList.Create;
 
-  for Index := FEditorPopupHooks.Count - 1 downto 0 do
+  for LIndex := FEditorPopupHooks.Count - 1 downto 0 do
   begin
-    Hook := TGit4DEditorPopupHook(FEditorPopupHooks[Index]);
-    if Hook.PopupMenu = nil then
+    LHook := TGit4DEditorPopupHook(FEditorPopupHooks[LIndex]);
+    if LHook.PopupMenu = nil then
     begin
-      Hook.Free;
-      FEditorPopupHooks.Delete(Index);
+      LHook.Free;
+      FEditorPopupHooks.Delete(LIndex);
     end
-    else if Hook.PopupMenu = PopupMenu then
+    else if LHook.PopupMenu = PopupMenu then
     begin
-      Hook.EnsureHooked;
+      LHook.EnsureHooked;
       Exit;
     end;
   end;
@@ -1204,7 +1204,7 @@ end;
 
 function TGit4DWizard.IsCandidateEditorPopupMenu(PopupMenu: TPopupMenu): Boolean;
 var
-  OwnerName: string;
+  LOwnerName: string;
 begin
   Result := False;
   if PopupMenu = nil then
@@ -1215,11 +1215,11 @@ begin
     Exit(True);
 
   if PopupMenu.Owner is TComponent then
-    OwnerName := TComponent(PopupMenu.Owner).Name
+    LOwnerName := TComponent(PopupMenu.Owner).Name
   else
-    OwnerName := '';
+    LOwnerName := '';
 
-  Result := ContainsText(OwnerName, 'Editor') or IsGit4DPopupMenu(PopupMenu);
+  Result := ContainsText(LOwnerName, 'Editor') or IsGit4DPopupMenu(PopupMenu);
 end;
 
 procedure TGit4DWizard.AddAction(const Caption: string; const Handler: TNotifyEvent;
@@ -1230,35 +1230,35 @@ end;
 
 procedure TGit4DWizard.AddTortoiseGitCommand(Menu: TMenuItem; Command: TTortoiseGitCommand);
 var
-  Item: TMenuItem;
+  LItem: TMenuItem;
 begin
-  Item := CreateActionItem(TGit4DTortoiseGit.CommandDisplayName(Command), TortoiseGitCommand);
-  Item.Tag := Ord(Command);
-  Item.HelpContext := Ord(Command);
-  ApplyMenuIcon(Item, TortoiseGitIconKey(Command));
-  Menu.Add(Item);
+  LItem := CreateActionItem(TGit4DTortoiseGit.CommandDisplayName(Command), TortoiseGitCommand);
+  LItem.Tag := Ord(Command);
+  LItem.HelpContext := Ord(Command);
+  ApplyMenuIcon(LItem, TortoiseGitIconKey(Command));
+  Menu.Add(LItem);
 end;
 
 procedure TGit4DWizard.AddTortoiseSvnCommand(Menu: TMenuItem; Command: TTortoiseSvnCommand);
 var
-  Item: TMenuItem;
+  LItem: TMenuItem;
 begin
-  Item := CreateActionItem(TGit4DTortoiseSVN.CommandDisplayName(Command), TortoiseSvnCommand);
-  Item.Tag := Ord(Command);
-  Item.HelpContext := Ord(Command);
-  ApplyMenuIcon(Item, TortoiseSvnIconKey(Command));
-  Menu.Add(Item);
+  LItem := CreateActionItem(TGit4DTortoiseSVN.CommandDisplayName(Command), TortoiseSvnCommand);
+  LItem.Tag := Ord(Command);
+  LItem.HelpContext := Ord(Command);
+  ApplyMenuIcon(LItem, TortoiseSvnIconKey(Command));
+  Menu.Add(LItem);
 end;
 
 procedure TGit4DWizard.AddGitExtensionsCommand(Menu: TMenuItem; Command: TGitExtensionsCommand);
 var
-  Item: TMenuItem;
+  LItem: TMenuItem;
 begin
-  Item := CreateActionItem(TGit4DGitExtensions.CommandDisplayName(Command), GitExtensionsCommand);
-  Item.Tag := Ord(Command);
-  Item.HelpContext := Ord(Command);
-  ApplyMenuIcon(Item, GitExtensionsIconKey(Command));
-  Menu.Add(Item);
+  LItem := CreateActionItem(TGit4DGitExtensions.CommandDisplayName(Command), GitExtensionsCommand);
+  LItem.Tag := Ord(Command);
+  LItem.HelpContext := Ord(Command);
+  ApplyMenuIcon(LItem, GitExtensionsIconKey(Command));
+  Menu.Add(LItem);
 end;
 
 procedure TGit4DWizard.AddSeparator;
@@ -1268,51 +1268,51 @@ end;
 
 procedure TGit4DWizard.AddGitCommand(Menu: TMenuItem; const Caption: string; const Handler: TNotifyEvent);
 var
-  Item: TMenuItem;
+  LItem: TMenuItem;
 begin
-  Item := CreateActionItem(Caption, Handler);
-  ApplyMenuIcon(Item, InternalGitIconKey(Caption));
-  Menu.Add(Item);
+  LItem := CreateActionItem(Caption, Handler);
+  ApplyMenuIcon(LItem, InternalGitIconKey(Caption));
+  Menu.Add(LItem);
 end;
 
 function TGit4DWizard.AddTortoiseSvnSubMenu(ParentMenu: TMenuItem): Boolean;
 var
-  TortoiseSvnMenu: TMenuItem;
+  LTortoiseSvnMenu: TMenuItem;
 begin
   Result := False;
   if not Git4DSettings.TortoiseSvnEnabled then
     Exit;
 
-  TortoiseSvnMenu := TMenuItem.Create(ParentMenu);
-  TortoiseSvnMenu.Caption := 'TortoiseSVN';
-  TortoiseSvnMenu.SubMenuImages := GetMenuImages;
+  LTortoiseSvnMenu := TMenuItem.Create(ParentMenu);
+  LTortoiseSvnMenu.Caption := 'TortoiseSVN';
+  LTortoiseSvnMenu.SubMenuImages := GetMenuImages;
 
-  AddTortoiseSvnCommand(TortoiseSvnMenu, svnUpdate);
-  AddTortoiseSvnCommand(TortoiseSvnMenu, svnCommit);
-  AddTortoiseSvnCommand(TortoiseSvnMenu, svnDiff);
-  AddTortoiseSvnCommand(TortoiseSvnMenu, svnPreviousDiff);
-  AddTortoiseSvnCommand(TortoiseSvnMenu, svnLog);
-  AddTortoiseSvnCommand(TortoiseSvnMenu, svnBlame);
-  AddTortoiseSvnCommand(TortoiseSvnMenu, svnCheckForModifications);
-  AddTortoiseSvnCommand(TortoiseSvnMenu, svnRepoBrowser);
-  AddTortoiseSvnCommand(TortoiseSvnMenu, svnRevisionGraph);
-  TortoiseSvnMenu.Add(CreateSeparator);
-  AddTortoiseSvnCommand(TortoiseSvnMenu, svnAdd);
-  AddTortoiseSvnCommand(TortoiseSvnMenu, svnRevert);
-  AddTortoiseSvnCommand(TortoiseSvnMenu, svnCleanup);
-  AddTortoiseSvnCommand(TortoiseSvnMenu, svnResolved);
-  TortoiseSvnMenu.Add(CreateSeparator);
-  AddTortoiseSvnCommand(TortoiseSvnMenu, svnSwitch);
-  AddTortoiseSvnCommand(TortoiseSvnMenu, svnMerge);
-  AddTortoiseSvnCommand(TortoiseSvnMenu, svnBranchTag);
-  AddTortoiseSvnCommand(TortoiseSvnMenu, svnCheckout);
-  AddTortoiseSvnCommand(TortoiseSvnMenu, svnExport);
-  TortoiseSvnMenu.Add(CreateSeparator);
-  AddTortoiseSvnCommand(TortoiseSvnMenu, svnSettings);
-  AddTortoiseSvnCommand(TortoiseSvnMenu, svnHelp);
-  AddTortoiseSvnCommand(TortoiseSvnMenu, svnAbout);
+  AddTortoiseSvnCommand(LTortoiseSvnMenu, svnUpdate);
+  AddTortoiseSvnCommand(LTortoiseSvnMenu, svnCommit);
+  AddTortoiseSvnCommand(LTortoiseSvnMenu, svnDiff);
+  AddTortoiseSvnCommand(LTortoiseSvnMenu, svnPreviousDiff);
+  AddTortoiseSvnCommand(LTortoiseSvnMenu, svnLog);
+  AddTortoiseSvnCommand(LTortoiseSvnMenu, svnBlame);
+  AddTortoiseSvnCommand(LTortoiseSvnMenu, svnCheckForModifications);
+  AddTortoiseSvnCommand(LTortoiseSvnMenu, svnRepoBrowser);
+  AddTortoiseSvnCommand(LTortoiseSvnMenu, svnRevisionGraph);
+  LTortoiseSvnMenu.Add(CreateSeparator);
+  AddTortoiseSvnCommand(LTortoiseSvnMenu, svnAdd);
+  AddTortoiseSvnCommand(LTortoiseSvnMenu, svnRevert);
+  AddTortoiseSvnCommand(LTortoiseSvnMenu, svnCleanup);
+  AddTortoiseSvnCommand(LTortoiseSvnMenu, svnResolved);
+  LTortoiseSvnMenu.Add(CreateSeparator);
+  AddTortoiseSvnCommand(LTortoiseSvnMenu, svnSwitch);
+  AddTortoiseSvnCommand(LTortoiseSvnMenu, svnMerge);
+  AddTortoiseSvnCommand(LTortoiseSvnMenu, svnBranchTag);
+  AddTortoiseSvnCommand(LTortoiseSvnMenu, svnCheckout);
+  AddTortoiseSvnCommand(LTortoiseSvnMenu, svnExport);
+  LTortoiseSvnMenu.Add(CreateSeparator);
+  AddTortoiseSvnCommand(LTortoiseSvnMenu, svnSettings);
+  AddTortoiseSvnCommand(LTortoiseSvnMenu, svnHelp);
+  AddTortoiseSvnCommand(LTortoiseSvnMenu, svnAbout);
 
-  ParentMenu.Add(TortoiseSvnMenu);
+  ParentMenu.Add(LTortoiseSvnMenu);
   Result := True;
 end;
 
@@ -1458,10 +1458,10 @@ end;
 
 procedure TGit4DWizard.InstallMainMenu;
 var
-  ExistingMenu: TMenuItem;
-  Index: Integer;
-  MainMenu: TMainMenu;
-  ToolsMenu: TMenuItem;
+  LExistingMenu: TMenuItem;
+  LIndex: Integer;
+  LMainMenu: TMainMenu;
+  LToolsMenu: TMenuItem;
 begin
   if FMainMenuInstalled then
     Exit;
@@ -1472,15 +1472,15 @@ begin
     Exit;
   end;
 
-  MainMenu := (BorlandIDEServices as INTAServices).MainMenu;
-  if MainMenu = nil then
+  LMainMenu := (BorlandIDEServices as INTAServices).MainMenu;
+  if LMainMenu = nil then
   begin
     ScheduleMainMenuRetry;
     Exit;
   end;
 
-  ToolsMenu := FindToolsMenu(MainMenu);
-  if ToolsMenu = nil then
+  LToolsMenu := FindToolsMenu(LMainMenu);
+  if LToolsMenu = nil then
   begin
     ScheduleMainMenuRetry;
     Exit;
@@ -1489,19 +1489,19 @@ begin
   if FMainMenuRetryTimer <> nil then
     FMainMenuRetryTimer.Enabled := False;
 
-  ExistingMenu := nil;
-  for Index := 0 to ToolsMenu.Count - 1 do
-    if SameText(ToolsMenu.Items[Index].Name, G4DMainMenuName) or
-      SameText(NormalizedCaption(ToolsMenu.Items[Index].Caption), cG4DProductName) then
+  LExistingMenu := nil;
+  for LIndex := 0 to LToolsMenu.Count - 1 do
+    if SameText(LToolsMenu.Items[LIndex].Name, G4DMainMenuName) or
+      SameText(NormalizedCaption(LToolsMenu.Items[LIndex].Caption), cG4DProductName) then
     begin
-      ExistingMenu := ToolsMenu.Items[Index];
+      LExistingMenu := LToolsMenu.Items[LIndex];
       Break;
     end;
 
-  if ExistingMenu <> nil then
+  if LExistingMenu <> nil then
   begin
-    ToolsMenu.Remove(ExistingMenu);
-    ExistingMenu.Free;
+    LToolsMenu.Remove(LExistingMenu);
+    LExistingMenu.Free;
   end;
 
   FMainMenu := TMenuItem.Create(nil);
@@ -1510,7 +1510,7 @@ begin
   FMainMenu.OnClick := MainMenuPopup;
 
   RebuildMainMenuItems;
-  ToolsMenu.Add(FMainMenu);
+  LToolsMenu.Add(FMainMenu);
   FMainMenuInstalled := True;
 end;
 
@@ -1547,19 +1547,19 @@ end;
 
 procedure TGit4DWizard.RebuildMainMenuItems;
 var
-  ExternalMenuAdded: Boolean;
+  LExternalMenuAdded: Boolean;
 begin
   if FMainMenu = nil then
     Exit;
 
   FMainMenu.Clear;
 
-  ExternalMenuAdded := AddTortoiseSvnSubMenu(FMainMenu);
+  LExternalMenuAdded := AddTortoiseSvnSubMenu(FMainMenu);
   if AddTortoiseGitSubMenu(FMainMenu) then
-    ExternalMenuAdded := True;
+    LExternalMenuAdded := True;
   if AddGitExtensionsSubMenu(FMainMenu) then
-    ExternalMenuAdded := True;
-  if ExternalMenuAdded then
+    LExternalMenuAdded := True;
+  if LExternalMenuAdded then
     AddSeparator;
   AddGitSubMenu(FMainMenu);
 
@@ -1570,8 +1570,8 @@ end;
 
 function TGit4DWizard.IsGit4DPopupMenu(PopupMenu: TPopupMenu): Boolean;
 var
-  CaptionText: string;
-  Index: Integer;
+  LCaptionText: string;
+  LIndex: Integer;
 begin
   Result := False;
   if PopupMenu = nil then
@@ -1583,14 +1583,14 @@ begin
     Exit;
   end;
 
-  for Index := 0 to PopupMenu.Items.Count - 1 do
+  for LIndex := 0 to PopupMenu.Items.Count - 1 do
   begin
-    CaptionText := NormalizedCaption(PopupMenu.Items[Index].Caption);
-    if SameText(CaptionText, 'Smart CodeInsight') or
-      SameText(CaptionText, 'Editor Options') or
-      SameText(CaptionText, 'Code Preview Window') or
-      SameText(CaptionText, 'Open File at Cursor') or
-      SameText(CaptionText, 'Close All Other Pages') then
+    LCaptionText := NormalizedCaption(PopupMenu.Items[LIndex].Caption);
+    if SameText(LCaptionText, 'Smart CodeInsight') or
+      SameText(LCaptionText, 'Editor Options') or
+      SameText(LCaptionText, 'Code Preview Window') or
+      SameText(LCaptionText, 'Open File at Cursor') or
+      SameText(LCaptionText, 'Close All Other Pages') then
     begin
       Result := True;
       Exit;
@@ -1600,32 +1600,32 @@ end;
 
 procedure TGit4DWizard.RemoveGit4DPopupItem(PopupMenu: TPopupMenu);
 var
-  Index: Integer;
-  Item: TMenuItem;
+  LIndex: Integer;
+  LItem: TMenuItem;
 begin
   if PopupMenu = nil then
     Exit;
 
-  for Index := PopupMenu.Items.Count - 1 downto 0 do
+  for LIndex := PopupMenu.Items.Count - 1 downto 0 do
   begin
-    Item := PopupMenu.Items[Index];
-    if SameText(Item.Name, G4DEditorPopupMenuName) or
-      SameText(NormalizedCaption(Item.Caption), cG4DProductName) then
+    LItem := PopupMenu.Items[LIndex];
+    if SameText(LItem.Name, G4DEditorPopupMenuName) or
+      SameText(NormalizedCaption(LItem.Caption), cG4DProductName) then
     begin
-      PopupMenu.Items.Remove(Item);
-      Item.Free;
+      PopupMenu.Items.Remove(LItem);
+      LItem.Free;
     end;
   end;
 end;
 
 procedure TGit4DWizard.RebuildEditorPopupMenu(PopupMenu: TPopupMenu);
 var
-  ExternalMenuAdded: Boolean;
-  FoundSmartCodeInsight: Boolean;
-  Index: Integer;
-  InsertIndex: Integer;
-  Item: TMenuItem;
-  RootMenu: TMenuItem;
+  LExternalMenuAdded: Boolean;
+  LFoundSmartCodeInsight: Boolean;
+  LIndex: Integer;
+  LInsertIndex: Integer;
+  LItem: TMenuItem;
+  LRootMenu: TMenuItem;
 begin
   if PopupMenu = nil then
     Exit;
@@ -1636,39 +1636,39 @@ begin
   if not Git4DSettings.EditorPopupEnabled then
     Exit;
 
-  FoundSmartCodeInsight := False;
-  InsertIndex := PopupMenu.Items.Count;
-  for Index := 0 to PopupMenu.Items.Count - 1 do
+  LFoundSmartCodeInsight := False;
+  LInsertIndex := PopupMenu.Items.Count;
+  for LIndex := 0 to PopupMenu.Items.Count - 1 do
   begin
-    Item := PopupMenu.Items[Index];
-    if SameText(NormalizedCaption(Item.Caption), 'Smart CodeInsight') then
+    LItem := PopupMenu.Items[LIndex];
+    if SameText(NormalizedCaption(LItem.Caption), 'Smart CodeInsight') then
     begin
-      InsertIndex := Index + 1;
-      FoundSmartCodeInsight := True;
+      LInsertIndex := LIndex + 1;
+      LFoundSmartCodeInsight := True;
       Break;
     end;
   end;
-  if not FoundSmartCodeInsight then
-    InsertIndex := PopupMenu.Items.Count;
-  if InsertIndex > PopupMenu.Items.Count then
-    InsertIndex := PopupMenu.Items.Count;
+  if not LFoundSmartCodeInsight then
+    LInsertIndex := PopupMenu.Items.Count;
+  if LInsertIndex > PopupMenu.Items.Count then
+    LInsertIndex := PopupMenu.Items.Count;
 
-  RootMenu := TMenuItem.Create(PopupMenu);
-  RootMenu.Name := G4DEditorPopupMenuName;
-  RootMenu.Caption := cG4DProductName;
-  ExternalMenuAdded := AddTortoiseSvnSubMenu(RootMenu);
-  if AddTortoiseGitSubMenu(RootMenu) then
-    ExternalMenuAdded := True;
-  if AddGitExtensionsSubMenu(RootMenu) then
-    ExternalMenuAdded := True;
-  if ExternalMenuAdded then
-    RootMenu.Add(CreateSeparator);
-  AddGitSubMenu(RootMenu);
+  LRootMenu := TMenuItem.Create(PopupMenu);
+  LRootMenu.Name := G4DEditorPopupMenuName;
+  LRootMenu.Caption := cG4DProductName;
+  LExternalMenuAdded := AddTortoiseSvnSubMenu(LRootMenu);
+  if AddTortoiseGitSubMenu(LRootMenu) then
+    LExternalMenuAdded := True;
+  if AddGitExtensionsSubMenu(LRootMenu) then
+    LExternalMenuAdded := True;
+  if LExternalMenuAdded then
+    LRootMenu.Add(CreateSeparator);
+  AddGitSubMenu(LRootMenu);
 
-  if RootMenu.Count = 0 then
-    RootMenu.Enabled := False;
+  if LRootMenu.Count = 0 then
+    LRootMenu.Enabled := False;
 
-  PopupMenu.Items.Insert(InsertIndex, RootMenu);
+  PopupMenu.Items.Insert(LInsertIndex, LRootMenu);
 end;
 
 procedure TGit4DWizard.MainMenuPopup(Sender: TObject);
@@ -1678,16 +1678,16 @@ end;
 
 function TGit4DWizard.FindToolsMenu(MainMenu: TMainMenu): TMenuItem;
 var
-  Index: Integer;
-  CaptionText: string;
+  LCaptionText: string;
+  LIndex: Integer;
 begin
   Result := nil;
-  for Index := 0 to MainMenu.Items.Count - 1 do
+  for LIndex := 0 to MainMenu.Items.Count - 1 do
   begin
-    CaptionText := StringReplace(MainMenu.Items[Index].Caption, '&', '', [rfReplaceAll]);
-    if SameText(CaptionText, 'Tools') then
+    LCaptionText := StringReplace(MainMenu.Items[LIndex].Caption, '&', '', [rfReplaceAll]);
+    if SameText(LCaptionText, 'Tools') then
     begin
-      Result := MainMenu.Items[Index];
+      Result := MainMenu.Items[LIndex];
       Exit;
     end;
   end;
@@ -1695,19 +1695,19 @@ end;
 
 procedure TGit4DWizard.InstallProjectManagerMenu;
 var
-  ProjectManager: IOTAProjectManager;
+  LProjectManager: IOTAProjectManager;
 begin
   if FProjectMenuNotifierIndex >= 0 then
     Exit;
 
-  if Supports(BorlandIDEServices, IOTAProjectManager, ProjectManager) then
+  if Supports(BorlandIDEServices, IOTAProjectManager, LProjectManager) then
   begin
     FProjectMenuNotifier := TGit4DProjectMenuNotifier.Create;
     try
-      FProjectMenuNotifierIndex := ProjectManager.AddMenuItemCreatorNotifier(FProjectMenuNotifier);
+      FProjectMenuNotifierIndex := LProjectManager.AddMenuItemCreatorNotifier(FProjectMenuNotifier);
       FProjectMenuUsesLegacyNotifier := False;
     except
-      FProjectMenuNotifierIndex := ProjectManager.AddMenuCreatorNotifier(FProjectMenuNotifier);
+      FProjectMenuNotifierIndex := LProjectManager.AddMenuCreatorNotifier(FProjectMenuNotifier);
       FProjectMenuUsesLegacyNotifier := True;
     end;
   end;
@@ -1715,49 +1715,49 @@ end;
 
 function TGit4DWizard.AddTortoiseGitSubMenu(ParentMenu: TMenuItem): Boolean;
 var
-  TortoiseMenu: TMenuItem;
+  LTortoiseMenu: TMenuItem;
 begin
   Result := False;
   if not Git4DSettings.TortoiseGitEnabled then
     Exit;
 
-  TortoiseMenu := TMenuItem.Create(ParentMenu);
-  TortoiseMenu.Caption := 'TortoiseGit';
-  TortoiseMenu.SubMenuImages := GetMenuImages;
+  LTortoiseMenu := TMenuItem.Create(ParentMenu);
+  LTortoiseMenu.Caption := 'TortoiseGit';
+  LTortoiseMenu.SubMenuImages := GetMenuImages;
 
-  AddTortoiseGitCommand(TortoiseMenu, tgPull);
-  AddTortoiseGitCommand(TortoiseMenu, tgPush);
-  AddTortoiseGitCommand(TortoiseMenu, tgSync);
-  AddTortoiseGitCommand(TortoiseMenu, tgCommit);
-  AddTortoiseGitCommand(TortoiseMenu, tgFetch);
-  AddTortoiseGitCommand(TortoiseMenu, tgDiff);
-  AddTortoiseGitCommand(TortoiseMenu, tgPreviousDiff);
-  AddTortoiseGitCommand(TortoiseMenu, tgLog);
-  AddTortoiseGitCommand(TortoiseMenu, tgReflog);
-  AddTortoiseGitCommand(TortoiseMenu, tgBrowseReferences);
-  AddTortoiseGitCommand(TortoiseMenu, tgDaemon);
-  AddTortoiseGitCommand(TortoiseMenu, tgRevisionGraph);
-  AddTortoiseGitCommand(TortoiseMenu, tgRepoBrowser);
-  AddTortoiseGitCommand(TortoiseMenu, tgRebase);
-  AddTortoiseGitCommand(TortoiseMenu, tgStashSave);
-  AddTortoiseGitCommand(TortoiseMenu, tgBisectStart);
-  AddTortoiseGitCommand(TortoiseMenu, tgResolve);
-  AddTortoiseGitCommand(TortoiseMenu, tgRevert);
-  AddTortoiseGitCommand(TortoiseMenu, tgCleanup);
-  AddTortoiseGitCommand(TortoiseMenu, tgSwitchCheckout);
-  AddTortoiseGitCommand(TortoiseMenu, tgMerge);
-  AddTortoiseGitCommand(TortoiseMenu, tgCreateBranch);
-  AddTortoiseGitCommand(TortoiseMenu, tgCreateTag);
-  AddTortoiseGitCommand(TortoiseMenu, tgExport);
-  AddTortoiseGitCommand(TortoiseMenu, tgWorktrees);
-  AddTortoiseGitCommand(TortoiseMenu, tgSubmoduleAdd);
-  AddTortoiseGitCommand(TortoiseMenu, tgCreatePatchSerial);
-  AddTortoiseGitCommand(TortoiseMenu, tgApplyPatchSerial);
-  AddTortoiseGitCommand(TortoiseMenu, tgSettings);
-  AddTortoiseGitCommand(TortoiseMenu, tgHelp);
-  AddTortoiseGitCommand(TortoiseMenu, tgAbout);
+  AddTortoiseGitCommand(LTortoiseMenu, tgPull);
+  AddTortoiseGitCommand(LTortoiseMenu, tgPush);
+  AddTortoiseGitCommand(LTortoiseMenu, tgSync);
+  AddTortoiseGitCommand(LTortoiseMenu, tgCommit);
+  AddTortoiseGitCommand(LTortoiseMenu, tgFetch);
+  AddTortoiseGitCommand(LTortoiseMenu, tgDiff);
+  AddTortoiseGitCommand(LTortoiseMenu, tgPreviousDiff);
+  AddTortoiseGitCommand(LTortoiseMenu, tgLog);
+  AddTortoiseGitCommand(LTortoiseMenu, tgReflog);
+  AddTortoiseGitCommand(LTortoiseMenu, tgBrowseReferences);
+  AddTortoiseGitCommand(LTortoiseMenu, tgDaemon);
+  AddTortoiseGitCommand(LTortoiseMenu, tgRevisionGraph);
+  AddTortoiseGitCommand(LTortoiseMenu, tgRepoBrowser);
+  AddTortoiseGitCommand(LTortoiseMenu, tgRebase);
+  AddTortoiseGitCommand(LTortoiseMenu, tgStashSave);
+  AddTortoiseGitCommand(LTortoiseMenu, tgBisectStart);
+  AddTortoiseGitCommand(LTortoiseMenu, tgResolve);
+  AddTortoiseGitCommand(LTortoiseMenu, tgRevert);
+  AddTortoiseGitCommand(LTortoiseMenu, tgCleanup);
+  AddTortoiseGitCommand(LTortoiseMenu, tgSwitchCheckout);
+  AddTortoiseGitCommand(LTortoiseMenu, tgMerge);
+  AddTortoiseGitCommand(LTortoiseMenu, tgCreateBranch);
+  AddTortoiseGitCommand(LTortoiseMenu, tgCreateTag);
+  AddTortoiseGitCommand(LTortoiseMenu, tgExport);
+  AddTortoiseGitCommand(LTortoiseMenu, tgWorktrees);
+  AddTortoiseGitCommand(LTortoiseMenu, tgSubmoduleAdd);
+  AddTortoiseGitCommand(LTortoiseMenu, tgCreatePatchSerial);
+  AddTortoiseGitCommand(LTortoiseMenu, tgApplyPatchSerial);
+  AddTortoiseGitCommand(LTortoiseMenu, tgSettings);
+  AddTortoiseGitCommand(LTortoiseMenu, tgHelp);
+  AddTortoiseGitCommand(LTortoiseMenu, tgAbout);
 
-  ParentMenu.Add(TortoiseMenu);
+  ParentMenu.Add(LTortoiseMenu);
   Result := True;
 end;
 
@@ -1798,42 +1798,42 @@ end;
 
 procedure TGit4DWizard.CheckoutBranch(Sender: TObject);
 var
-  BranchName: string;
+  LBranchName: string;
 begin
-  if InputQuery(cG4DProductName, 'Branch to checkout', BranchName) then
-    TGit4DGit.RunGitForActiveRepository('checkout ' + BranchName);
+  if InputQuery(cG4DProductName, 'Branch to checkout', LBranchName) then
+    TGit4DGit.RunGitForActiveRepository('checkout ' + LBranchName);
 end;
 
 procedure TGit4DWizard.CreateBranch(Sender: TObject);
 var
-  BranchName: string;
+  LBranchName: string;
 begin
-  if InputQuery(cG4DProductName, 'New branch name', BranchName) then
-    TGit4DGit.RunGitForActiveRepository('checkout -b ' + BranchName);
+  if InputQuery(cG4DProductName, 'New branch name', LBranchName) then
+    TGit4DGit.RunGitForActiveRepository('checkout -b ' + LBranchName);
 end;
 
 procedure TGit4DWizard.MergeBranch(Sender: TObject);
 var
-  BranchName: string;
+  LBranchName: string;
 begin
-  if InputQuery(cG4DProductName, 'Branch to merge', BranchName) then
-    TGit4DGit.RunGitForActiveRepository('merge ' + BranchName);
+  if InputQuery(cG4DProductName, 'Branch to merge', LBranchName) then
+    TGit4DGit.RunGitForActiveRepository('merge ' + LBranchName);
 end;
 
 procedure TGit4DWizard.RebaseBranch(Sender: TObject);
 var
-  BranchName: string;
+  LBranchName: string;
 begin
-  if InputQuery(cG4DProductName, 'Branch to rebase onto', BranchName) then
-    TGit4DGit.RunGitForActiveRepository('rebase ' + BranchName);
+  if InputQuery(cG4DProductName, 'Branch to rebase onto', LBranchName) then
+    TGit4DGit.RunGitForActiveRepository('rebase ' + LBranchName);
 end;
 
 procedure TGit4DWizard.CherryPick(Sender: TObject);
 var
-  CommitHash: string;
+  LCommitHash: string;
 begin
-  if InputQuery(cG4DProductName, 'Commit to cherry-pick', CommitHash) then
-    TGit4DGit.RunGitForActiveRepository('cherry-pick ' + CommitHash);
+  if InputQuery(cG4DProductName, 'Commit to cherry-pick', LCommitHash) then
+    TGit4DGit.RunGitForActiveRepository('cherry-pick ' + LCommitHash);
 end;
 
 procedure TGit4DWizard.ApplyPatch(Sender: TObject);
@@ -1903,26 +1903,26 @@ end;
 
 procedure TGit4DWizard.GitExtensionsCommand(Sender: TObject);
 var
-  Command: TGitExtensionsCommand;
-  CommandOrdinal: Integer;
+  LCommand: TGitExtensionsCommand;
+  LCommandOrdinal: Integer;
 begin
   try
     if Sender is TMenuItem then
-      CommandOrdinal := (Sender as TMenuItem).HelpContext
+      LCommandOrdinal := (Sender as TMenuItem).HelpContext
     else if Sender is TAction then
-      CommandOrdinal := (Sender as TAction).HelpContext
+      LCommandOrdinal := (Sender as TAction).HelpContext
     else
       Exit;
 
-    if (CommandOrdinal < Ord(Low(TGitExtensionsCommand))) or
-      (CommandOrdinal > Ord(High(TGitExtensionsCommand))) then
-      raise Exception.CreateFmt('Invalid Git Extensions command id: %d', [CommandOrdinal]);
+    if (LCommandOrdinal < Ord(Low(TGitExtensionsCommand))) or
+      (LCommandOrdinal > Ord(High(TGitExtensionsCommand))) then
+      raise Exception.CreateFmt('Invalid Git Extensions command id: %d', [LCommandOrdinal]);
 
-    Command := TGitExtensionsCommand(CommandOrdinal);
-    if Command in [geAdd, geApply, geBlame, geDiffTool, geFileEditor, geFileHistory, geRevert, geViewPatch] then
-      TGit4DGitExtensions.RunForActiveFile(Command)
+    LCommand := TGitExtensionsCommand(LCommandOrdinal);
+    if LCommand in [geAdd, geApply, geBlame, geDiffTool, geFileEditor, geFileHistory, geRevert, geViewPatch] then
+      TGit4DGitExtensions.RunForActiveFile(LCommand)
     else
-      TGit4DGitExtensions.RunForActiveRepository(Command);
+      TGit4DGitExtensions.RunForActiveRepository(LCommand);
   except
     on E: Exception do
       MessageDlg(E.Message, mtError, [mbOK], 0);
@@ -1931,26 +1931,26 @@ end;
 
 procedure TGit4DWizard.TortoiseSvnCommand(Sender: TObject);
 var
-  Command: TTortoiseSvnCommand;
-  CommandOrdinal: Integer;
+  LCommand: TTortoiseSvnCommand;
+  LCommandOrdinal: Integer;
 begin
   try
     if Sender is TMenuItem then
-      CommandOrdinal := (Sender as TMenuItem).HelpContext
+      LCommandOrdinal := (Sender as TMenuItem).HelpContext
     else if Sender is TAction then
-      CommandOrdinal := (Sender as TAction).HelpContext
+      LCommandOrdinal := (Sender as TAction).HelpContext
     else
       Exit;
 
-    if (CommandOrdinal < Ord(Low(TTortoiseSvnCommand))) or
-      (CommandOrdinal > Ord(High(TTortoiseSvnCommand))) then
-      raise Exception.CreateFmt('Invalid TortoiseSVN command id: %d', [CommandOrdinal]);
+    if (LCommandOrdinal < Ord(Low(TTortoiseSvnCommand))) or
+      (LCommandOrdinal > Ord(High(TTortoiseSvnCommand))) then
+      raise Exception.CreateFmt('Invalid TortoiseSVN command id: %d', [LCommandOrdinal]);
 
-    Command := TTortoiseSvnCommand(CommandOrdinal);
-    if Command in [svnDiff, svnPreviousDiff, svnBlame, svnResolved] then
-      TGit4DTortoiseSVN.RunForActiveFile(Command)
+    LCommand := TTortoiseSvnCommand(LCommandOrdinal);
+    if LCommand in [svnDiff, svnPreviousDiff, svnBlame, svnResolved] then
+      TGit4DTortoiseSVN.RunForActiveFile(LCommand)
     else
-      TGit4DTortoiseSVN.RunForActiveRepository(Command);
+      TGit4DTortoiseSVN.RunForActiveRepository(LCommand);
   except
     on E: Exception do
       MessageDlg(E.Message, mtError, [mbOK], 0);
@@ -1959,26 +1959,26 @@ end;
 
 procedure TGit4DWizard.TortoiseGitCommand(Sender: TObject);
 var
-  Command: TTortoiseGitCommand;
-  CommandOrdinal: Integer;
+  LCommand: TTortoiseGitCommand;
+  LCommandOrdinal: Integer;
 begin
   try
     if Sender is TMenuItem then
-      CommandOrdinal := (Sender as TMenuItem).HelpContext
+      LCommandOrdinal := (Sender as TMenuItem).HelpContext
     else if Sender is TAction then
-      CommandOrdinal := (Sender as TAction).HelpContext
+      LCommandOrdinal := (Sender as TAction).HelpContext
     else
       Exit;
 
-    if (CommandOrdinal < Ord(Low(TTortoiseGitCommand))) or
-      (CommandOrdinal > Ord(High(TTortoiseGitCommand))) then
-      raise Exception.CreateFmt('Invalid TortoiseGit command id: %d', [CommandOrdinal]);
+    if (LCommandOrdinal < Ord(Low(TTortoiseGitCommand))) or
+      (LCommandOrdinal > Ord(High(TTortoiseGitCommand))) then
+      raise Exception.CreateFmt('Invalid TortoiseGit command id: %d', [LCommandOrdinal]);
 
-    Command := TTortoiseGitCommand(CommandOrdinal);
-    if Command in [tgDiff, tgPreviousDiff, tgBlame, tgResolve] then
-      TGit4DTortoiseGit.RunForActiveFile(Command)
+    LCommand := TTortoiseGitCommand(LCommandOrdinal);
+    if LCommand in [tgDiff, tgPreviousDiff, tgBlame, tgResolve] then
+      TGit4DTortoiseGit.RunForActiveFile(LCommand)
     else
-      TGit4DTortoiseGit.RunForActiveRepository(Command);
+      TGit4DTortoiseGit.RunForActiveRepository(LCommand);
   except
     on E: Exception do
       MessageDlg(E.Message, mtError, [mbOK], 0);

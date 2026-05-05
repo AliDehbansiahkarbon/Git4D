@@ -41,40 +41,40 @@ end;
 
 function DiscoverRepository(const FileOrDirectory: string): TGit4DRepository;
 var
-  DirectoryName: string;
-  ParentName: string;
+  LDirectoryName: string;
+  LParentName: string;
 begin
   Result := Default(TGit4DRepository);
   Result.ActiveFileName := FileOrDirectory;
 
-  DirectoryName := NormalizeStartDirectory(FileOrDirectory);
-  while DirectoryName <> '' do
+  LDirectoryName := NormalizeStartDirectory(FileOrDirectory);
+  while LDirectoryName <> '' do
   begin
-    if IsGitRoot(DirectoryName) then
+    if IsGitRoot(LDirectoryName) then
     begin
-      Result.RootPath := DirectoryName;
+      Result.RootPath := LDirectoryName;
       Result.IsValid := True;
       Exit;
     end;
 
-    ParentName := TPath.GetDirectoryName(DirectoryName);
-    if SameText(ParentName, DirectoryName) then
+    LParentName := TPath.GetDirectoryName(LDirectoryName);
+    if SameText(LParentName, LDirectoryName) then
       Break;
-    DirectoryName := ParentName;
+    LDirectoryName := LParentName;
   end;
 end;
 
 function TryGetActiveModuleFileName: string;
 var
-  ModuleServices: IOTAModuleServices;
-  Module: IOTAModule;
+  LModule: IOTAModule;
+  LModuleServices: IOTAModuleServices;
 begin
   Result := '';
   try
-    ModuleServices := BorlandIDEServices as IOTAModuleServices;
-    Module := ModuleServices.CurrentModule;
-    if Module <> nil then
-      Result := Module.FileName;
+    LModuleServices := BorlandIDEServices as IOTAModuleServices;
+    LModule := LModuleServices.CurrentModule;
+    if LModule <> nil then
+      Result := LModule.FileName;
   except
     Result := '';
   end;
@@ -82,15 +82,15 @@ end;
 
 function TryGetActiveProjectFileName: string;
 var
-  ModuleServices: IOTAModuleServices;
-  Project: IOTAProject;
+  LModuleServices: IOTAModuleServices;
+  LProject: IOTAProject;
 begin
   Result := '';
   try
-    ModuleServices := BorlandIDEServices as IOTAModuleServices;
-    Project := ModuleServices.GetActiveProject;
-    if Project <> nil then
-      Result := Project.FileName;
+    LModuleServices := BorlandIDEServices as IOTAModuleServices;
+    LProject := LModuleServices.GetActiveProject;
+    if LProject <> nil then
+      Result := LProject.FileName;
   except
     Result := '';
   end;
@@ -98,82 +98,82 @@ end;
 
 function DiscoverActiveRepository: TGit4DRepository;
 var
-  ActiveFileName: string;
-  ProjectFileName: string;
+  LActiveFileName: string;
+  LProjectFileName: string;
 begin
-  ActiveFileName := TryGetActiveModuleFileName;
-  ProjectFileName := TryGetActiveProjectFileName;
+  LActiveFileName := TryGetActiveModuleFileName;
+  LProjectFileName := TryGetActiveProjectFileName;
 
-  if ActiveFileName <> '' then
-    Result := DiscoverRepository(ActiveFileName)
+  if LActiveFileName <> '' then
+    Result := DiscoverRepository(LActiveFileName)
   else
-    Result := DiscoverRepository(ProjectFileName);
+    Result := DiscoverRepository(LProjectFileName);
 
-  Result.ActiveFileName := ActiveFileName;
-  Result.ProjectFileName := ProjectFileName;
+  Result.ActiveFileName := LActiveFileName;
+  Result.ProjectFileName := LProjectFileName;
 end;
 
 function ReadPipeText(const CommandLine, WorkingDirectory: string): string;
 var
-  SecurityAttributes: TSecurityAttributes;
-  ReadPipe: THandle;
-  WritePipe: THandle;
-  StartupInfo: TStartupInfo;
-  ProcessInfo: TProcessInformation;
-  Buffer: array[0..2047] of AnsiChar;
-  BytesRead: DWORD;
-  Chunk: AnsiString;
-  MutableCommandLine: string;
+  LBuffer: array[0..2047] of AnsiChar;
+  LBytesRead: DWORD;
+  LChunk: AnsiString;
+  LMutableCommandLine: string;
+  LProcessInfo: TProcessInformation;
+  LReadPipe: THandle;
+  LSecurityAttributes: TSecurityAttributes;
+  LStartupInfo: TStartupInfo;
+  LWritePipe: THandle;
 begin
   Result := '';
-  SecurityAttributes.nLength := SizeOf(SecurityAttributes);
-  SecurityAttributes.bInheritHandle := True;
-  SecurityAttributes.lpSecurityDescriptor := nil;
+  LSecurityAttributes.nLength := SizeOf(LSecurityAttributes);
+  LSecurityAttributes.bInheritHandle := True;
+  LSecurityAttributes.lpSecurityDescriptor := nil;
 
-  if not CreatePipe(ReadPipe, WritePipe, @SecurityAttributes, 0) then
+  if not CreatePipe(LReadPipe, LWritePipe, @LSecurityAttributes, 0) then
     Exit;
   try
-    SetHandleInformation(ReadPipe, HANDLE_FLAG_INHERIT, 0);
-    ZeroMemory(@StartupInfo, SizeOf(StartupInfo));
-    StartupInfo.cb := SizeOf(StartupInfo);
-    StartupInfo.dwFlags := STARTF_USESHOWWINDOW or STARTF_USESTDHANDLES;
-    StartupInfo.wShowWindow := SW_HIDE;
-    StartupInfo.hStdOutput := WritePipe;
-    StartupInfo.hStdError := WritePipe;
+    SetHandleInformation(LReadPipe, HANDLE_FLAG_INHERIT, 0);
+    ZeroMemory(@LStartupInfo, SizeOf(LStartupInfo));
+    LStartupInfo.cb := SizeOf(LStartupInfo);
+    LStartupInfo.dwFlags := STARTF_USESHOWWINDOW or STARTF_USESTDHANDLES;
+    LStartupInfo.wShowWindow := SW_HIDE;
+    LStartupInfo.hStdOutput := LWritePipe;
+    LStartupInfo.hStdError := LWritePipe;
 
-    ZeroMemory(@ProcessInfo, SizeOf(ProcessInfo));
-    MutableCommandLine := CommandLine;
-    if CreateProcess(nil, PChar(MutableCommandLine), nil, nil, True, CREATE_NO_WINDOW, nil,
-      PChar(WorkingDirectory), StartupInfo, ProcessInfo) then
+    ZeroMemory(@LProcessInfo, SizeOf(LProcessInfo));
+    LMutableCommandLine := CommandLine;
+    if CreateProcess(nil, PChar(LMutableCommandLine), nil, nil, True, CREATE_NO_WINDOW, nil,
+      PChar(WorkingDirectory), LStartupInfo, LProcessInfo) then
     begin
-      CloseHandle(WritePipe);
-      WritePipe := 0;
-      while ReadFile(ReadPipe, Buffer, SizeOf(Buffer), BytesRead, nil) and (BytesRead > 0) do
+      CloseHandle(LWritePipe);
+      LWritePipe := 0;
+      while ReadFile(LReadPipe, LBuffer, SizeOf(LBuffer), LBytesRead, nil) and (LBytesRead > 0) do
       begin
-        SetString(Chunk, PAnsiChar(@Buffer[0]), BytesRead);
-        Result := Result + string(Chunk);
+        SetString(LChunk, PAnsiChar(@LBuffer[0]), LBytesRead);
+        Result := Result + string(LChunk);
       end;
-      WaitForSingleObject(ProcessInfo.hProcess, 2000);
-      CloseHandle(ProcessInfo.hThread);
-      CloseHandle(ProcessInfo.hProcess);
+      WaitForSingleObject(LProcessInfo.hProcess, 2000);
+      CloseHandle(LProcessInfo.hThread);
+      CloseHandle(LProcessInfo.hProcess);
     end;
   finally
-    if WritePipe <> 0 then
-      CloseHandle(WritePipe);
-    CloseHandle(ReadPipe);
+    if LWritePipe <> 0 then
+      CloseHandle(LWritePipe);
+    CloseHandle(LReadPipe);
   end;
 end;
 
 function GetCurrentBranchName(const RepositoryRoot: string): string;
 var
-  Output: string;
+  LOutput: string;
 begin
   Result := '';
   if RepositoryRoot = '' then
     Exit;
 
-  Output := ReadPipeText('"' + Git4DSettings.GitExecutable + '" branch --show-current', RepositoryRoot);
-  Result := Trim(Output);
+  LOutput := ReadPipeText('"' + Git4DSettings.GitExecutable + '" branch --show-current', RepositoryRoot);
+  Result := Trim(LOutput);
 end;
 
 end.

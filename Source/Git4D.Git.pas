@@ -51,35 +51,35 @@ end;
 
 class procedure TGit4DGit.OpenTerminal(const Repository: TGit4DRepository);
 var
-  ExecutableName: string;
-  Parameters: string;
+  LExecutableName: string;
+  LParameters: string;
 begin
   RequireRepository(Repository);
 
-  ExecutableName := Git4DSettings.GitBashExecutable;
-  if ExecutableName <> '' then
-    Parameters := ''
+  LExecutableName := Git4DSettings.GitBashExecutable;
+  if LExecutableName <> '' then
+    LParameters := ''
   else
   begin
-    ExecutableName := 'cmd.exe';
-    Parameters := '/K cd /d ' + Quote(Repository.RootPath);
+    LExecutableName := 'cmd.exe';
+    LParameters := '/K cd /d ' + Quote(Repository.RootPath);
   end;
 
-  ShellExecute(0, 'open', PChar(ExecutableName), PChar(Parameters), PChar(Repository.RootPath), SW_SHOWNORMAL);
+  ShellExecute(0, 'open', PChar(LExecutableName), PChar(LParameters), PChar(Repository.RootPath), SW_SHOWNORMAL);
 end;
 
 class procedure TGit4DGit.RunGitConsole(const Repository: TGit4DRepository; const Arguments: string);
 var
-  Parameters: string;
+  LParameters: string;
 begin
   RequireRepository(Repository);
-  Parameters := Format('%s "cd /d %s && %s %s"', [
+  LParameters := Format('%s "cd /d %s && %s %s"', [
     ConsoleSwitch,
     Quote(Repository.RootPath),
     Quote(Git4DSettings.GitExecutable),
     Arguments
   ]);
-  ShellExecute(0, 'open', 'cmd.exe', PChar(Parameters), PChar(Repository.RootPath), SW_SHOWNORMAL);
+  ShellExecute(0, 'open', 'cmd.exe', PChar(LParameters), PChar(Repository.RootPath), SW_SHOWNORMAL);
 end;
 
 class procedure TGit4DGit.RunGitForActiveRepository(const Arguments: string);
@@ -94,17 +94,17 @@ end;
 
 class procedure TGit4DGit.RunGitForActiveFile(const ArgumentsBeforeFile: string);
 var
-  Repository: TGit4DRepository;
-  RelativeFileName: string;
+  LRelativeFileName: string;
+  LRepository: TGit4DRepository;
 begin
   try
-    Repository := DiscoverActiveRepository;
-    RequireRepository(Repository);
-    if Repository.ActiveFileName = '' then
+    LRepository := DiscoverActiveRepository;
+    RequireRepository(LRepository);
+    if LRepository.ActiveFileName = '' then
       raise Exception.Create('No active editor file was found.');
 
-    RelativeFileName := ExtractRelativePath(IncludeTrailingPathDelimiter(Repository.RootPath), Repository.ActiveFileName);
-    RunGitConsole(Repository, ArgumentsBeforeFile + ' -- ' + Quote(RelativeFileName));
+    LRelativeFileName := ExtractRelativePath(IncludeTrailingPathDelimiter(LRepository.RootPath), LRepository.ActiveFileName);
+    RunGitConsole(LRepository, ArgumentsBeforeFile + ' -- ' + Quote(LRelativeFileName));
   except
     on E: Exception do
       MessageDlg(E.Message, mtInformation, [mbOK], 0);

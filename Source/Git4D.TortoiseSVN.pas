@@ -63,16 +63,16 @@ end;
 
 function ReadRegistryString(const Root: HKEY; const KeyName, ValueName: string): string;
 var
-  Registry: TRegistry;
+  LRegistry: TRegistry;
 begin
   Result := '';
-  Registry := TRegistry.Create(KEY_READ);
+  LRegistry := TRegistry.Create(KEY_READ);
   try
-    Registry.RootKey := Root;
-    if Registry.OpenKeyReadOnly(KeyName) and Registry.ValueExists(ValueName) then
-      Result := Registry.ReadString(ValueName);
+    LRegistry.RootKey := Root;
+    if LRegistry.OpenKeyReadOnly(KeyName) and LRegistry.ValueExists(ValueName) then
+      Result := LRegistry.ReadString(ValueName);
   finally
-    Registry.Free;
+    LRegistry.Free;
   end;
 end;
 
@@ -165,29 +165,29 @@ end;
 
 function DiscoverSvnWorkingCopyRoot(const FileOrDirectory: string): string;
 var
-  DirectoryName: string;
-  ParentName: string;
+  LDirectoryName: string;
+  LParentName: string;
 begin
   Result := '';
-  DirectoryName := NormalizeStartDirectory(FileOrDirectory);
-  while DirectoryName <> '' do
+  LDirectoryName := NormalizeStartDirectory(FileOrDirectory);
+  while LDirectoryName <> '' do
   begin
-    if TDirectory.Exists(TPath.Combine(DirectoryName, '.svn')) then
+    if TDirectory.Exists(TPath.Combine(LDirectoryName, '.svn')) then
     begin
-      Result := DirectoryName;
+      Result := LDirectoryName;
       Exit;
     end;
 
-    ParentName := TPath.GetDirectoryName(DirectoryName);
-    if SameText(ParentName, DirectoryName) then
+    LParentName := TPath.GetDirectoryName(LDirectoryName);
+    if SameText(LParentName, LDirectoryName) then
       Break;
-    DirectoryName := ParentName;
+    LDirectoryName := LParentName;
   end;
 end;
 
 class function TGit4DTortoiseSVN.DetectExecutable: string;
 var
-  DirectoryName: string;
+  LDirectoryName: string;
 begin
   Result := ReadRegistryString(HKEY_LOCAL_MACHINE, 'SOFTWARE\TortoiseSVN', 'ProcPath');
   if (Result <> '') and FileExists(Result) then
@@ -197,13 +197,13 @@ begin
   if (Result <> '') and FileExists(Result) then
     Exit;
 
-  DirectoryName := ReadRegistryString(HKEY_LOCAL_MACHINE, 'SOFTWARE\TortoiseSVN', 'Directory');
-  Result := CombineProcPath(DirectoryName);
+  LDirectoryName := ReadRegistryString(HKEY_LOCAL_MACHINE, 'SOFTWARE\TortoiseSVN', 'Directory');
+  Result := CombineProcPath(LDirectoryName);
   if (Result <> '') and FileExists(Result) then
     Exit;
 
-  DirectoryName := ReadRegistryString(HKEY_LOCAL_MACHINE, 'SOFTWARE\WOW6432Node\TortoiseSVN', 'Directory');
-  Result := CombineProcPath(DirectoryName);
+  LDirectoryName := ReadRegistryString(HKEY_LOCAL_MACHINE, 'SOFTWARE\WOW6432Node\TortoiseSVN', 'Directory');
+  Result := CombineProcPath(LDirectoryName);
   if (Result <> '') and FileExists(Result) then
     Exit;
 
@@ -293,18 +293,18 @@ end;
 class procedure TGit4DTortoiseSVN.Run(ACommand: TTortoiseSvnCommand;
   const Repository: TGit4DRepository);
 var
-  CommandLine: string;
-  CurrentDirectory: PChar;
-  DirectoryName: string;
-  ExecutableName: string;
-  Parameters: string;
-  ProcessInfo: TProcessInformation;
-  StartupInfo: TStartupInfo;
-  TargetPath: string;
-  WinError: DWORD;
+  LCommandLine: string;
+  LCurrentDirectory: PChar;
+  LDirectoryName: string;
+  LExecutableName: string;
+  LParameters: string;
+  LProcessInfo: TProcessInformation;
+  LStartupInfo: TStartupInfo;
+  LTargetPath: string;
+  LWinError: DWORD;
 begin
-  ExecutableName := EffectiveExecutable;
-  if ExecutableName = '' then
+  LExecutableName := EffectiveExecutable;
+  if LExecutableName = '' then
   begin
     MessageDlg('TortoiseProc.exe was not found. Configure it in Tools > Options > Third Party > Git4D.',
       mtInformation, [mbOK], 0);
@@ -312,61 +312,61 @@ begin
   end;
 
   if CommandNeedsActiveFile(ACommand) and (Repository.ActiveFileName <> '') then
-    TargetPath := Repository.ActiveFileName
+    LTargetPath := Repository.ActiveFileName
   else
   begin
-    TargetPath := DiscoverSvnWorkingCopyRoot(Repository.ActiveFileName);
-    if TargetPath = '' then
-      TargetPath := DiscoverSvnWorkingCopyRoot(Repository.ProjectFileName);
-    if (TargetPath = '') and (Repository.ProjectFileName <> '') then
-      TargetPath := ExtractFilePath(Repository.ProjectFileName);
+    LTargetPath := DiscoverSvnWorkingCopyRoot(Repository.ActiveFileName);
+    if LTargetPath = '' then
+      LTargetPath := DiscoverSvnWorkingCopyRoot(Repository.ProjectFileName);
+    if (LTargetPath = '') and (Repository.ProjectFileName <> '') then
+      LTargetPath := ExtractFilePath(Repository.ProjectFileName);
   end;
 
-  if (TargetPath = '') and not CommandAllowsNoTarget(ACommand) then
+  if (LTargetPath = '') and not CommandAllowsNoTarget(ACommand) then
   begin
     MessageDlg('No active SVN working copy, project file, or editor file was found for the TortoiseSVN command.',
       mtInformation, [mbOK], 0);
     Exit;
   end;
 
-  Parameters := '/command:' + CommandName(ACommand);
-  if TargetPath <> '' then
-    Parameters := Parameters + ' /path:' + Quote(TargetPath);
-  Parameters := Parameters + ExtraArguments(ACommand);
+  LParameters := '/command:' + CommandName(ACommand);
+  if LTargetPath <> '' then
+    LParameters := LParameters + ' /path:' + Quote(LTargetPath);
+  LParameters := LParameters + ExtraArguments(ACommand);
 
-  DirectoryName := '';
-  if TargetPath <> '' then
+  LDirectoryName := '';
+  if LTargetPath <> '' then
   begin
-    if DirectoryExists(TargetPath) then
-      DirectoryName := TargetPath
+    if DirectoryExists(LTargetPath) then
+      LDirectoryName := LTargetPath
     else
-      DirectoryName := ExtractFilePath(TargetPath);
+      LDirectoryName := ExtractFilePath(LTargetPath);
   end;
 
-  ZeroMemory(@StartupInfo, SizeOf(StartupInfo));
-  ZeroMemory(@ProcessInfo, SizeOf(ProcessInfo));
-  StartupInfo.cb := SizeOf(StartupInfo);
-  StartupInfo.dwFlags := STARTF_USESHOWWINDOW;
-  StartupInfo.wShowWindow := SW_SHOWNORMAL;
+  ZeroMemory(@LStartupInfo, SizeOf(LStartupInfo));
+  ZeroMemory(@LProcessInfo, SizeOf(LProcessInfo));
+  LStartupInfo.cb := SizeOf(LStartupInfo);
+  LStartupInfo.dwFlags := STARTF_USESHOWWINDOW;
+  LStartupInfo.wShowWindow := SW_SHOWNORMAL;
 
-  CommandLine := Quote(ExecutableName) + ' ' + Parameters;
-  if DirectoryName <> '' then
-    CurrentDirectory := PChar(DirectoryName)
+  LCommandLine := Quote(LExecutableName) + ' ' + LParameters;
+  if LDirectoryName <> '' then
+    LCurrentDirectory := PChar(LDirectoryName)
   else
-    CurrentDirectory := nil;
+    LCurrentDirectory := nil;
 
-  if not CreateProcess(nil, PChar(CommandLine), nil, nil, False, 0, nil, CurrentDirectory,
-    StartupInfo, ProcessInfo) then
+  if not CreateProcess(nil, PChar(LCommandLine), nil, nil, False, 0, nil, LCurrentDirectory,
+    LStartupInfo, LProcessInfo) then
   begin
-    WinError := GetLastError;
+    LWinError := GetLastError;
     MessageDlg(Format('Unable to launch TortoiseSVN command "%s". Windows error %d: %s' + sLineBreak + sLineBreak +
-      '%s', [CommandName(ACommand), WinError, SysErrorMessage(WinError), CommandLine]),
+      '%s', [CommandName(ACommand), LWinError, SysErrorMessage(LWinError), LCommandLine]),
       mtError, [mbOK], 0);
   end
   else
   begin
-    CloseHandle(ProcessInfo.hThread);
-    CloseHandle(ProcessInfo.hProcess);
+    CloseHandle(LProcessInfo.hThread);
+    CloseHandle(LProcessInfo.hProcess);
   end;
 end;
 
@@ -377,13 +377,13 @@ end;
 
 class procedure TGit4DTortoiseSVN.RunForActiveFile(ACommand: TTortoiseSvnCommand);
 var
-  Repository: TGit4DRepository;
+  LRepository: TGit4DRepository;
 begin
-  Repository := DiscoverActiveRepository;
-  if Repository.ActiveFileName = '' then
+  LRepository := DiscoverActiveRepository;
+  if LRepository.ActiveFileName = '' then
     MessageDlg('No active editor file was found.', mtInformation, [mbOK], 0)
   else
-    Run(ACommand, Repository);
+    Run(ACommand, LRepository);
 end;
 
 end.

@@ -92,38 +92,38 @@ end;
 
 procedure RegisterGit4DOptions;
 var
-  Services: INTAEnvironmentOptionsServices;
+  LServices: INTAEnvironmentOptionsServices;
 begin
   if GAddInOptions <> nil then
     Exit;
 
-  if Supports(BorlandIDEServices, INTAEnvironmentOptionsServices, Services) then
+  if Supports(BorlandIDEServices, INTAEnvironmentOptionsServices, LServices) then
   begin
     GAddInOptions := TGit4DAddInOptions.Create;
-    Services.RegisterAddInOptions(GAddInOptions);
+    LServices.RegisterAddInOptions(GAddInOptions);
   end;
 end;
 
 procedure UnregisterGit4DOptions;
 var
-  Services: INTAEnvironmentOptionsServices;
+  LServices: INTAEnvironmentOptionsServices;
 begin
   if GAddInOptions = nil then
     Exit;
 
-  if Supports(BorlandIDEServices, INTAEnvironmentOptionsServices, Services) then
-    Services.UnregisterAddInOptions(GAddInOptions);
+  if Supports(BorlandIDEServices, INTAEnvironmentOptionsServices, LServices) then
+    LServices.UnregisterAddInOptions(GAddInOptions);
   GAddInOptions := nil;
 end;
 
 procedure OpenGit4DOptions;
 var
-  Options: IOTAEnvironmentOptions;
-  Services: IOTAServices;
+  LOptions: IOTAEnvironmentOptions;
+  LServices: IOTAServices;
 begin
-  if Supports(BorlandIDEServices, IOTAServices, Services) and
-    Supports(Services.GetEnvironmentOptions, IOTAEnvironmentOptions140, Options) then
-    (Options as IOTAEnvironmentOptions140).EditOptions('', cG4DProductName)
+  if Supports(BorlandIDEServices, IOTAServices, LServices) and
+    Supports(LServices.GetEnvironmentOptions, IOTAEnvironmentOptions140, LOptions) then
+    (LOptions as IOTAEnvironmentOptions140).EditOptions('', cG4DProductName)
   else
     MessageDlg('Open Tools > Options > Third Party > ' + cG4DProductName + ' to configure Git4D.',
       mtInformation, [mbOK], 0);
@@ -131,31 +131,31 @@ end;
 
 constructor TGit4DOptionsFrame.Create(AOwner: TComponent);
 var
-  Top: Integer;
+  LTop: Integer;
 begin
   inherited Create(AOwner);
   Align := alClient;
   BevelOuter := bvNone;
   ParentBackground := False;
 
-  Top := 18;
-  AddLabeledEdit('Git executable', Top, FGitEdit);
-  AddLabeledEdit('Git Bash executable', Top, FBashEdit);
-  AddLabeledEdit('Default clone folder', Top, FCloneEdit);
-  AddCheckBox('Enable editor popup menu integration', Top, FEditorPopupCheck);
-  AddCheckBox('Show current branch in Git4D menus', Top, FShowBranchCheck);
-  AddCheckBox('Confirm destructive commands', Top, FConfirmCheck);
-  AddCheckBox('Enable background fetch', Top, FBackgroundFetchCheck);
-  AddCheckBox('Close command console when process succeeds', Top, FAutoCloseCheck);
-  Inc(Top, 10);
-  AddCheckBox('Enable TortoiseGit submenu when installed', Top, FTortoiseGitCheck);
-  AddLabeledEdit('TortoiseGitProc.exe', Top, FTortoiseGitEdit);
-  Inc(Top, 10);
-  AddCheckBox('Enable TortoiseSVN submenu when installed', Top, FTortoiseSvnCheck);
-  AddLabeledEdit('TortoiseProc.exe', Top, FTortoiseSvnEdit);
-  Inc(Top, 10);
-  AddCheckBox('Enable Git Extensions submenu when installed', Top, FGitExtensionsCheck);
-  AddLabeledEdit('GitExtensions.exe', Top, FGitExtensionsEdit);
+  LTop := 18;
+  AddLabeledEdit('Git executable', LTop, FGitEdit);
+  AddLabeledEdit('Git Bash executable', LTop, FBashEdit);
+  AddLabeledEdit('Default clone folder', LTop, FCloneEdit);
+  AddCheckBox('Enable editor popup menu integration', LTop, FEditorPopupCheck);
+  AddCheckBox('Show current branch in Git4D menus', LTop, FShowBranchCheck);
+  AddCheckBox('Confirm destructive commands', LTop, FConfirmCheck);
+  AddCheckBox('Enable background fetch', LTop, FBackgroundFetchCheck);
+  AddCheckBox('Close command console when process succeeds', LTop, FAutoCloseCheck);
+  Inc(LTop, 10);
+  AddCheckBox('Enable TortoiseGit submenu when installed', LTop, FTortoiseGitCheck);
+  AddLabeledEdit('TortoiseGitProc.exe', LTop, FTortoiseGitEdit);
+  Inc(LTop, 10);
+  AddCheckBox('Enable TortoiseSVN submenu when installed', LTop, FTortoiseSvnCheck);
+  AddLabeledEdit('TortoiseProc.exe', LTop, FTortoiseSvnEdit);
+  Inc(LTop, 10);
+  AddCheckBox('Enable Git Extensions submenu when installed', LTop, FGitExtensionsCheck);
+  AddLabeledEdit('GitExtensions.exe', LTop, FGitExtensionsEdit);
 end;
 
 procedure TGit4DOptionsFrame.AddLabeledEdit(const ACaption: string; var ATop: Integer; out AEdit: TEdit);

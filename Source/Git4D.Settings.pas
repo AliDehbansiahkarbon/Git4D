@@ -90,10 +90,10 @@ end;
 
 function TGit4DSettings.GetSettingsFileName: string;
 var
-  SettingsDir: string;
+  LSettingsDir: string;
 begin
-  SettingsDir := GetSettingsDirectory(cG4DProductName);
-  Result := TPath.Combine(SettingsDir, cG4DSettingsFileName);
+  LSettingsDir := GetSettingsDirectory(cG4DProductName);
+  Result := TPath.Combine(LSettingsDir, cG4DSettingsFileName);
 end;
 
 function TGit4DSettings.GetLegacySettingsFileName: string;
@@ -109,58 +109,58 @@ end;
 
 procedure TGit4DSettings.Load;
 var
-  Ini: TIniFile;
-  IniFileName: string;
+  LIni: TIniFile;
+  LIniFileName: string;
 begin
-  IniFileName := SettingsFileName;
-  if (not FileExists(IniFileName)) and FileExists(GetLegacySettingsFileName) then
-    IniFileName := GetLegacySettingsFileName;
+  LIniFileName := SettingsFileName;
+  if (not FileExists(LIniFileName)) and FileExists(GetLegacySettingsFileName) then
+    LIniFileName := GetLegacySettingsFileName;
 
-  Ini := TIniFile.Create(IniFileName);
+  LIni := TIniFile.Create(LIniFileName);
   try
-    FGitExecutable := Ini.ReadString('Git', 'GitExecutable', FGitExecutable);
-    FGitBashExecutable := Ini.ReadString('Git', 'GitBashExecutable', FGitBashExecutable);
-    FDefaultCloneDirectory := Ini.ReadString('Git', 'DefaultCloneDirectory', FDefaultCloneDirectory);
-    FEditorPopupEnabled := Ini.ReadBool('IDE', 'EditorPopupEnabled', FEditorPopupEnabled);
-    FShowBranchInMenu := Ini.ReadBool('IDE', 'ShowBranchInMenu', FShowBranchInMenu);
-    FShowConfirmationForDestructiveActions := Ini.ReadBool('IDE', 'ShowConfirmationForDestructiveActions', FShowConfirmationForDestructiveActions);
-    FGitExtensionsEnabled := Ini.ReadBool('GitExtensions', 'Enabled', FGitExtensionsEnabled);
-    FGitExtensionsExecutable := Ini.ReadString('GitExtensions', 'Executable', FGitExtensionsExecutable);
-    FTortoiseGitEnabled := Ini.ReadBool('TortoiseGit', 'Enabled', FTortoiseGitEnabled);
-    FTortoiseGitExecutable := Ini.ReadString('TortoiseGit', 'Executable', FTortoiseGitExecutable);
-    FTortoiseSvnEnabled := Ini.ReadBool('TortoiseSVN', 'Enabled', FTortoiseSvnEnabled);
-    FTortoiseSvnExecutable := Ini.ReadString('TortoiseSVN', 'Executable', FTortoiseSvnExecutable);
-    FBackgroundFetchEnabled := Ini.ReadBool('BackgroundFetch', 'Enabled', FBackgroundFetchEnabled);
-    FBackgroundFetchIntervalSeconds := Ini.ReadInteger('BackgroundFetch', 'IntervalSeconds', FBackgroundFetchIntervalSeconds);
-    FAutoCloseConsoleOnSuccess := Ini.ReadBool('Process', 'AutoCloseConsoleOnSuccess', FAutoCloseConsoleOnSuccess);
+    FGitExecutable := LIni.ReadString('Git', 'GitExecutable', FGitExecutable);
+    FGitBashExecutable := LIni.ReadString('Git', 'GitBashExecutable', FGitBashExecutable);
+    FDefaultCloneDirectory := LIni.ReadString('Git', 'DefaultCloneDirectory', FDefaultCloneDirectory);
+    FEditorPopupEnabled := LIni.ReadBool('IDE', 'EditorPopupEnabled', FEditorPopupEnabled);
+    FShowBranchInMenu := LIni.ReadBool('IDE', 'ShowBranchInMenu', FShowBranchInMenu);
+    FShowConfirmationForDestructiveActions := LIni.ReadBool('IDE', 'ShowConfirmationForDestructiveActions', FShowConfirmationForDestructiveActions);
+    FGitExtensionsEnabled := LIni.ReadBool('GitExtensions', 'Enabled', FGitExtensionsEnabled);
+    FGitExtensionsExecutable := LIni.ReadString('GitExtensions', 'Executable', FGitExtensionsExecutable);
+    FTortoiseGitEnabled := LIni.ReadBool('TortoiseGit', 'Enabled', FTortoiseGitEnabled);
+    FTortoiseGitExecutable := LIni.ReadString('TortoiseGit', 'Executable', FTortoiseGitExecutable);
+    FTortoiseSvnEnabled := LIni.ReadBool('TortoiseSVN', 'Enabled', FTortoiseSvnEnabled);
+    FTortoiseSvnExecutable := LIni.ReadString('TortoiseSVN', 'Executable', FTortoiseSvnExecutable);
+    FBackgroundFetchEnabled := LIni.ReadBool('BackgroundFetch', 'Enabled', FBackgroundFetchEnabled);
+    FBackgroundFetchIntervalSeconds := LIni.ReadInteger('BackgroundFetch', 'IntervalSeconds', FBackgroundFetchIntervalSeconds);
+    FAutoCloseConsoleOnSuccess := LIni.ReadBool('Process', 'AutoCloseConsoleOnSuccess', FAutoCloseConsoleOnSuccess);
   finally
-    Ini.Free;
+    LIni.Free;
   end;
 end;
 
 procedure TGit4DSettings.Save;
 var
-  Ini: TIniFile;
+  LIni: TIniFile;
 begin
-  Ini := TIniFile.Create(SettingsFileName);
+  LIni := TIniFile.Create(SettingsFileName);
   try
-    Ini.WriteString('Git', 'GitExecutable', FGitExecutable);
-    Ini.WriteString('Git', 'GitBashExecutable', FGitBashExecutable);
-    Ini.WriteString('Git', 'DefaultCloneDirectory', FDefaultCloneDirectory);
-    Ini.WriteBool('IDE', 'EditorPopupEnabled', FEditorPopupEnabled);
-    Ini.WriteBool('IDE', 'ShowBranchInMenu', FShowBranchInMenu);
-    Ini.WriteBool('IDE', 'ShowConfirmationForDestructiveActions', FShowConfirmationForDestructiveActions);
-    Ini.WriteBool('GitExtensions', 'Enabled', FGitExtensionsEnabled);
-    Ini.WriteString('GitExtensions', 'Executable', FGitExtensionsExecutable);
-    Ini.WriteBool('TortoiseGit', 'Enabled', FTortoiseGitEnabled);
-    Ini.WriteString('TortoiseGit', 'Executable', FTortoiseGitExecutable);
-    Ini.WriteBool('TortoiseSVN', 'Enabled', FTortoiseSvnEnabled);
-    Ini.WriteString('TortoiseSVN', 'Executable', FTortoiseSvnExecutable);
-    Ini.WriteBool('BackgroundFetch', 'Enabled', FBackgroundFetchEnabled);
-    Ini.WriteInteger('BackgroundFetch', 'IntervalSeconds', FBackgroundFetchIntervalSeconds);
-    Ini.WriteBool('Process', 'AutoCloseConsoleOnSuccess', FAutoCloseConsoleOnSuccess);
+    LIni.WriteString('Git', 'GitExecutable', FGitExecutable);
+    LIni.WriteString('Git', 'GitBashExecutable', FGitBashExecutable);
+    LIni.WriteString('Git', 'DefaultCloneDirectory', FDefaultCloneDirectory);
+    LIni.WriteBool('IDE', 'EditorPopupEnabled', FEditorPopupEnabled);
+    LIni.WriteBool('IDE', 'ShowBranchInMenu', FShowBranchInMenu);
+    LIni.WriteBool('IDE', 'ShowConfirmationForDestructiveActions', FShowConfirmationForDestructiveActions);
+    LIni.WriteBool('GitExtensions', 'Enabled', FGitExtensionsEnabled);
+    LIni.WriteString('GitExtensions', 'Executable', FGitExtensionsExecutable);
+    LIni.WriteBool('TortoiseGit', 'Enabled', FTortoiseGitEnabled);
+    LIni.WriteString('TortoiseGit', 'Executable', FTortoiseGitExecutable);
+    LIni.WriteBool('TortoiseSVN', 'Enabled', FTortoiseSvnEnabled);
+    LIni.WriteString('TortoiseSVN', 'Executable', FTortoiseSvnExecutable);
+    LIni.WriteBool('BackgroundFetch', 'Enabled', FBackgroundFetchEnabled);
+    LIni.WriteInteger('BackgroundFetch', 'IntervalSeconds', FBackgroundFetchIntervalSeconds);
+    LIni.WriteBool('Process', 'AutoCloseConsoleOnSuccess', FAutoCloseConsoleOnSuccess);
   finally
-    Ini.Free;
+    LIni.Free;
   end;
 end;
 

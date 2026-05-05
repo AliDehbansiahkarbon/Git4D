@@ -80,16 +80,16 @@ end;
 
 function ReadRegistryString(const Root: HKEY; const KeyName, ValueName: string): string;
 var
-  Registry: TRegistry;
+  LRegistry: TRegistry;
 begin
   Result := '';
-  Registry := TRegistry.Create(KEY_READ);
+  LRegistry := TRegistry.Create(KEY_READ);
   try
-    Registry.RootKey := Root;
-    if Registry.OpenKeyReadOnly(KeyName) and Registry.ValueExists(ValueName) then
-      Result := Registry.ReadString(ValueName);
+    LRegistry.RootKey := Root;
+    if LRegistry.OpenKeyReadOnly(KeyName) and LRegistry.ValueExists(ValueName) then
+      Result := LRegistry.ReadString(ValueName);
   finally
-    Registry.Free;
+    LRegistry.Free;
   end;
 end;
 
@@ -203,20 +203,20 @@ end;
 
 class function TGit4DGitExtensions.DetectExecutable: string;
 var
-  DirectoryName: string;
+  LDirectoryName: string;
 begin
-  DirectoryName := ReadRegistryString(HKEY_CURRENT_USER, 'Software\GitExtensions', 'InstallDir');
-  Result := CombineExecutablePath(DirectoryName);
+  LDirectoryName := ReadRegistryString(HKEY_CURRENT_USER, 'Software\GitExtensions', 'InstallDir');
+  Result := CombineExecutablePath(LDirectoryName);
   if (Result <> '') and FileExists(Result) then
     Exit;
 
-  DirectoryName := ReadRegistryString(HKEY_LOCAL_MACHINE, 'Software\GitExtensions', 'InstallDir');
-  Result := CombineExecutablePath(DirectoryName);
+  LDirectoryName := ReadRegistryString(HKEY_LOCAL_MACHINE, 'Software\GitExtensions', 'InstallDir');
+  Result := CombineExecutablePath(LDirectoryName);
   if (Result <> '') and FileExists(Result) then
     Exit;
 
-  DirectoryName := ReadRegistryString(HKEY_LOCAL_MACHINE, 'Software\WOW6432Node\GitExtensions', 'InstallDir');
-  Result := CombineExecutablePath(DirectoryName);
+  LDirectoryName := ReadRegistryString(HKEY_LOCAL_MACHINE, 'Software\WOW6432Node\GitExtensions', 'InstallDir');
+  Result := CombineExecutablePath(LDirectoryName);
   if (Result <> '') and FileExists(Result) then
     Exit;
 
@@ -342,18 +342,18 @@ end;
 class procedure TGit4DGitExtensions.Run(ACommand: TGitExtensionsCommand;
   const Repository: TGit4DRepository);
 var
-  CommandLine: string;
-  CurrentDirectory: PChar;
-  DirectoryName: string;
-  ExecutableName: string;
-  Parameters: string;
-  ProcessInfo: TProcessInformation;
-  StartupInfo: TStartupInfo;
-  TargetPath: string;
-  WinError: DWORD;
+  LCommandLine: string;
+  LCurrentDirectory: PChar;
+  LDirectoryName: string;
+  LExecutableName: string;
+  LParameters: string;
+  LProcessInfo: TProcessInformation;
+  LStartupInfo: TStartupInfo;
+  LTargetPath: string;
+  LWinError: DWORD;
 begin
-  ExecutableName := EffectiveExecutable;
-  if ExecutableName = '' then
+  LExecutableName := EffectiveExecutable;
+  if LExecutableName = '' then
   begin
     MessageDlg('GitExtensions.exe was not found. Configure it in Tools > Options > Third Party > Git4D.',
       mtInformation, [mbOK], 0);
@@ -361,61 +361,61 @@ begin
   end;
 
   if CommandNeedsActiveFile(ACommand) and (Repository.ActiveFileName <> '') then
-    TargetPath := Repository.ActiveFileName
+    LTargetPath := Repository.ActiveFileName
   else if CommandUsesRepositoryPath(ACommand) and (Repository.RootPath <> '') then
-    TargetPath := Repository.RootPath
+    LTargetPath := Repository.RootPath
   else
-    TargetPath := '';
+    LTargetPath := '';
 
-  if (TargetPath = '') and CommandNeedsActiveFile(ACommand) then
+  if (LTargetPath = '') and CommandNeedsActiveFile(ACommand) then
   begin
     MessageDlg('No active editor file was found for the Git Extensions command.', mtInformation, [mbOK], 0);
     Exit;
   end;
 
-  if (TargetPath = '') and (Repository.RootPath = '') and not CommandAllowsNoTarget(ACommand) then
+  if (LTargetPath = '') and (Repository.RootPath = '') and not CommandAllowsNoTarget(ACommand) then
   begin
     MessageDlg('No active Git repository was found for the Git Extensions command.', mtInformation, [mbOK], 0);
     Exit;
   end;
 
-  Parameters := CommandName(ACommand);
-  if TargetPath <> '' then
-    Parameters := Parameters + ' ' + Quote(TargetPath);
+  LParameters := CommandName(ACommand);
+  if LTargetPath <> '' then
+    LParameters := LParameters + ' ' + Quote(LTargetPath);
 
-  DirectoryName := Repository.RootPath;
-  if (DirectoryName = '') and (TargetPath <> '') then
+  LDirectoryName := Repository.RootPath;
+  if (LDirectoryName = '') and (LTargetPath <> '') then
   begin
-    if DirectoryExists(TargetPath) then
-      DirectoryName := TargetPath
+    if DirectoryExists(LTargetPath) then
+      LDirectoryName := LTargetPath
     else
-      DirectoryName := ExtractFilePath(TargetPath);
+      LDirectoryName := ExtractFilePath(LTargetPath);
   end;
 
-  ZeroMemory(@StartupInfo, SizeOf(StartupInfo));
-  ZeroMemory(@ProcessInfo, SizeOf(ProcessInfo));
-  StartupInfo.cb := SizeOf(StartupInfo);
-  StartupInfo.dwFlags := STARTF_USESHOWWINDOW;
-  StartupInfo.wShowWindow := SW_SHOWNORMAL;
+  ZeroMemory(@LStartupInfo, SizeOf(LStartupInfo));
+  ZeroMemory(@LProcessInfo, SizeOf(LProcessInfo));
+  LStartupInfo.cb := SizeOf(LStartupInfo);
+  LStartupInfo.dwFlags := STARTF_USESHOWWINDOW;
+  LStartupInfo.wShowWindow := SW_SHOWNORMAL;
 
-  CommandLine := Quote(ExecutableName) + ' ' + Parameters;
-  if DirectoryName <> '' then
-    CurrentDirectory := PChar(DirectoryName)
+  LCommandLine := Quote(LExecutableName) + ' ' + LParameters;
+  if LDirectoryName <> '' then
+    LCurrentDirectory := PChar(LDirectoryName)
   else
-    CurrentDirectory := nil;
+    LCurrentDirectory := nil;
 
-  if not CreateProcess(nil, PChar(CommandLine), nil, nil, False, 0, nil, CurrentDirectory,
-    StartupInfo, ProcessInfo) then
+  if not CreateProcess(nil, PChar(LCommandLine), nil, nil, False, 0, nil, LCurrentDirectory,
+    LStartupInfo, LProcessInfo) then
   begin
-    WinError := GetLastError;
+    LWinError := GetLastError;
     MessageDlg(Format('Unable to launch Git Extensions command "%s". Windows error %d: %s' + sLineBreak + sLineBreak +
-      '%s', [CommandName(ACommand), WinError, SysErrorMessage(WinError), CommandLine]),
+      '%s', [CommandName(ACommand), LWinError, SysErrorMessage(LWinError), LCommandLine]),
       mtError, [mbOK], 0);
   end
   else
   begin
-    CloseHandle(ProcessInfo.hThread);
-    CloseHandle(ProcessInfo.hProcess);
+    CloseHandle(LProcessInfo.hThread);
+    CloseHandle(LProcessInfo.hProcess);
   end;
 end;
 
@@ -426,13 +426,13 @@ end;
 
 class procedure TGit4DGitExtensions.RunForActiveFile(ACommand: TGitExtensionsCommand);
 var
-  Repository: TGit4DRepository;
+  LRepository: TGit4DRepository;
 begin
-  Repository := DiscoverActiveRepository;
-  if Repository.ActiveFileName = '' then
+  LRepository := DiscoverActiveRepository;
+  if LRepository.ActiveFileName = '' then
     MessageDlg('No active editor file was found.', mtInformation, [mbOK], 0)
   else
-    Run(ACommand, Repository);
+    Run(ACommand, LRepository);
 end;
 
 end.
