@@ -30,8 +30,12 @@ What you get there:
 - `About`
 
 <img width="648" height="581" alt="image" src="https://github.com/user-attachments/assets/135b923d-826e-49bf-9017-0a350d7e856c" />
+<img width="617" height="722" alt="image" src="https://github.com/user-attachments/assets/ec5390ed-75b8-44ca-98d8-36af8bd030c7" />
 <img width="628" height="971" alt="image" src="https://github.com/user-attachments/assets/5361e22a-a244-4ef8-a7f2-a1a49114c0ef" />
 
+## Internal Git Workbench
+Simple UI to work with Git commands more easily.
+<img width="1015" height="589" alt="image" src="https://github.com/user-attachments/assets/6f0f7ee9-ed9f-452b-9841-a26bcd011945" />
 
 ### Options Page
 
@@ -149,14 +153,6 @@ Likely future improvements:
 - The plugin has been exercised primarily against RAD Studio 12.x and 13.x.
 - The editor popup integration is intentionally conservative because RAD Studio menu internals differ between IDE versions.
 - The Git4D Workbench is additive. Existing terminal-based commands remain available while workbench actions are moved toward native VCL flows incrementally.
-
-## Next Milestones
-
-1. Continue polishing dockable VCL Git workbench views while preserving existing terminal-based commands.
-2. Add internal diff viewer with Delphi/C++ syntax-aware file labels.
-3. Add commit graph model and repository browser.
-4. Add a real `Tools > Options > Version Control > Git4D` page using the RAD Studio options service for each supported IDE version.
-5. Add provider integrations for GitHub, GitLab, Azure DevOps, and Bitbucket Server.
 
 <hr>
 <p align="center">
