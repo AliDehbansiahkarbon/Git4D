@@ -95,6 +95,7 @@ type
     procedure BuildPopupMenu;
     procedure BindLayoutEvents;
     procedure BlameClick(Sender: TObject);
+    procedure ChangedFilesResize(Sender: TObject);
     procedure ClientChanged(Sender: TObject);
     function CurrentClient: TGit4DWorkbenchClient;
     procedure CommitClick(Sender: TObject);
@@ -107,6 +108,7 @@ type
     function GetSelectedRelativePath: string;
     procedure HistoryClick(Sender: TObject);
     function IsSelectedFileUntracked: Boolean;
+    function PromptCommitMessage(out MessageText: string): Boolean;
     procedure PullClick(Sender: TObject);
     procedure PopupOpening(Sender: TObject);
     procedure PushClick(Sender: TObject);
@@ -114,6 +116,7 @@ type
     procedure RefreshRepository;
     function RepositoryForSelectedFile: TGit4DRepository;
     procedure ResetClick(Sender: TObject);
+    procedure ResizeChangedFilesColumns;
     procedure RouteGitExtensionsRepository(Command: TGitExtensionsCommand);
     procedure RouteGitExtensionsSelectedFile(Command: TGitExtensionsCommand);
     procedure RouteTortoiseGitRepository(Command: TTortoiseGitCommand);
@@ -410,8 +413,11 @@ begin
   PullButton.OnClick := PullClick;
   PushButton.OnClick := PushClick;
   FClientCombo.OnChange := ClientChanged;
+  FChangedFiles.OnResize := ChangedFilesResize;
+  FChangedFiles.MultiSelect := True;
   FTerminalInput.OnKeyDown := TerminalInputKeyDown;
   FClientCombo.ShowHint := True;
+  ResizeChangedFilesColumns;
 end;
 
 function TGit4DWorkbenchForm.AddFileMenuItem(const Caption: string; const Handler: TNotifyEvent): TMenuItem;
@@ -534,10 +540,16 @@ begin
   FChangedFiles.PopupMenu := FFilePopup;
 end;
 
+procedure TGit4DWorkbenchForm.ChangedFilesResize(Sender: TObject);
+begin
+  ResizeChangedFilesColumns;
+end;
+
 procedure TGit4DWorkbenchForm.FormShown(Sender: TObject);
 begin
   UpdateWorkbenchSettings;
   RefreshRepository;
+  ResizeChangedFilesColumns;
 end;
 
 function TGit4DWorkbenchForm.GetSelectedRelativePath: string;
@@ -558,6 +570,94 @@ end;
 function TGit4DWorkbenchForm.IsSelectedFileUntracked: Boolean;
 begin
   Result := SameText(GetSelectedStatusCode, '??');
+end;
+
+function TGit4DWorkbenchForm.PromptCommitMessage(out MessageText: string): Boolean;
+var
+  ButtonPanel: TPanel;
+  CancelButton: TButton;
+  Edit: TEdit;
+  Form: TForm;
+  InfoLabel: TLabel;
+  OkButton: TButton;
+  PromptLabel: TLabel;
+begin
+  Result := False;
+  MessageText := '';
+
+  Form := TForm.Create(nil);
+  try
+    Form.Caption := cG4DProductName + ' Commit';
+    Form.BorderStyle := bsDialog;
+    Form.Position := poScreenCenter;
+    Form.ClientWidth := 460;
+    Form.ClientHeight := 150;
+    Form.Font.Name := 'Segoe UI';
+    Form.Font.Size := 9;
+
+    PromptLabel := TLabel.Create(Form);
+    PromptLabel.Parent := Form;
+    PromptLabel.Left := 18;
+    PromptLabel.Top := 18;
+    PromptLabel.Width := 420;
+    PromptLabel.Height := 18;
+    PromptLabel.AutoSize := False;
+    PromptLabel.Caption := 'Commit message';
+
+    Edit := TEdit.Create(Form);
+    Edit.Parent := Form;
+    Edit.Left := 18;
+    Edit.Top := 42;
+    Edit.Width := 420;
+    Edit.Height := 24;
+    Edit.Anchors := [akLeft, akTop, akRight];
+
+    InfoLabel := TLabel.Create(Form);
+    InfoLabel.Parent := Form;
+    InfoLabel.Left := 18;
+    InfoLabel.Top := 74;
+    InfoLabel.Width := 420;
+    InfoLabel.Height := 18;
+    InfoLabel.AutoSize := False;
+    InfoLabel.Caption := 'The message is passed to git commit -m.';
+
+    ButtonPanel := TPanel.Create(Form);
+    ButtonPanel.Parent := Form;
+    ButtonPanel.Align := alBottom;
+    ButtonPanel.Height := 48;
+    ButtonPanel.BevelOuter := bvNone;
+
+    OkButton := TButton.Create(Form);
+    OkButton.Parent := ButtonPanel;
+    OkButton.Caption := 'Commit';
+    OkButton.ModalResult := mrOK;
+    OkButton.Default := True;
+    OkButton.Width := 88;
+    OkButton.Height := 28;
+    OkButton.Left := Form.ClientWidth - 184;
+    OkButton.Top := 10;
+
+    CancelButton := TButton.Create(Form);
+    CancelButton.Parent := ButtonPanel;
+    CancelButton.Caption := 'Cancel';
+    CancelButton.ModalResult := mrCancel;
+    CancelButton.Cancel := True;
+    CancelButton.Width := 88;
+    CancelButton.Height := 28;
+    CancelButton.Left := Form.ClientWidth - 94;
+    CancelButton.Top := 10;
+
+    ApplyIDETheme(Form);
+    ApplyIDEStyle(Form);
+
+    if Form.ShowModal = mrOK then
+    begin
+      MessageText := Trim(Edit.Text);
+      Result := MessageText <> '';
+    end;
+  finally
+    Form.Free;
+  end;
 end;
 
 function TGit4DWorkbenchForm.CurrentClient: TGit4DWorkbenchClient;
@@ -760,6 +860,36 @@ begin
   RefreshRepository;
 end;
 
+procedure TGit4DWorkbenchForm.ResizeChangedFilesColumns;
+var
+  AvailableWidth: Integer;
+  CodeWidth: Integer;
+  FileWidth: Integer;
+  StateWidth: Integer;
+begin
+  if (FChangedFiles = nil) or (FChangedFiles.Columns.Count < 3) then
+    Exit;
+
+  AvailableWidth := FChangedFiles.ClientWidth - 4;
+  if AvailableWidth < 240 then
+    AvailableWidth := 240;
+
+  CodeWidth := 64;
+  StateWidth := AvailableWidth div 5;
+  if StateWidth < 110 then
+    StateWidth := 110;
+  if StateWidth > 180 then
+    StateWidth := 180;
+
+  FileWidth := AvailableWidth - StateWidth - CodeWidth;
+  if FileWidth < 120 then
+    FileWidth := 120;
+
+  FChangedFiles.Columns[0].Width := FileWidth;
+  FChangedFiles.Columns[1].Width := StateWidth;
+  FChangedFiles.Columns[2].Width := CodeWidth;
+end;
+
 procedure TGit4DWorkbenchForm.PopupOpening(Sender: TObject);
 var
   HasSelection: Boolean;
@@ -898,7 +1028,7 @@ begin
 
   case CurrentClient of
     wcGit4D:
-      if InputQuery(cG4DProductName, 'Commit message', MessageText) and (Trim(MessageText) <> '') then
+      if PromptCommitMessage(MessageText) then
         ExecuteRepositoryCommand('commit -m ' + Quote(MessageText), 'Commit');
     wcTortoiseGit:
       RouteTortoiseGitRepository(tgCommit);

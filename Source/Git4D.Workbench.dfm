@@ -246,6 +246,7 @@ object Git4DWorkbenchForm: TGit4DWorkbenchForm
           end>
         ReadOnly = True
         RowSelect = True
+        MultiSelect = True
         TabOrder = 0
         ViewStyle = vsReport
       end
