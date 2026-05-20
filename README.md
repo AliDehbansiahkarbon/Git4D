@@ -30,8 +30,12 @@ What you get there:
 - `About`
 
 <img width="648" height="581" alt="image" src="https://github.com/user-attachments/assets/135b923d-826e-49bf-9017-0a350d7e856c" />
+<img width="617" height="722" alt="image" src="https://github.com/user-attachments/assets/ec5390ed-75b8-44ca-98d8-36af8bd030c7" />
 <img width="628" height="971" alt="image" src="https://github.com/user-attachments/assets/5361e22a-a244-4ef8-a7f2-a1a49114c0ef" />
 
+## Internal Git Workbench
+Simple UI to work with Git commands more easily.
+<img width="1015" height="589" alt="image" src="https://github.com/user-attachments/assets/6f0f7ee9-ed9f-452b-9841-a26bcd011945" />
 
 ### Options Page
 
