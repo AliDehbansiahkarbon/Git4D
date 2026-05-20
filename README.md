@@ -154,14 +154,6 @@ Likely future improvements:
 - The editor popup integration is intentionally conservative because RAD Studio menu internals differ between IDE versions.
 - The Git4D Workbench is additive. Existing terminal-based commands remain available while workbench actions are moved toward native VCL flows incrementally.
 
-## Next Milestones
-
-1. Continue polishing dockable VCL Git workbench views while preserving existing terminal-based commands.
-2. Add internal diff viewer with Delphi/C++ syntax-aware file labels.
-3. Add commit graph model and repository browser.
-4. Add a real `Tools > Options > Version Control > Git4D` page using the RAD Studio options service for each supported IDE version.
-5. Add provider integrations for GitHub, GitLab, Azure DevOps, and Bitbucket Server.
-
 <hr>
 <p align="center">
 <img src="https://i0.wp.com/blogs.embarcadero.com/wp-content/uploads/2022/11/dlogonew-5582740.png?resize=254%2C242&ssl=1" alt="Delphi">
