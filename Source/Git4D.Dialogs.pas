@@ -14,9 +14,107 @@ uses
   Vcl.Dialogs,
   Vcl.ExtCtrls,
   Vcl.Forms,
+  Vcl.Graphics,
   Vcl.StdCtrls,
+  Vcl.Themes,
+  ToolsAPI,
   Git4D.Constants,
   Git4D.Settings;
+
+procedure ApplyIDETheme(Component: TComponent);
+{$IF CompilerVersion >= 32.0}
+var
+{$IF CompilerVersion > 33.0}
+  LThemingServices: IOTAIDEThemingServices;
+{$ELSE}
+  LThemingServices: IOTAIDEThemingServices250;
+{$IFEND}
+{$IFEND}
+begin
+{$IF CompilerVersion >= 32.0}
+{$IF CompilerVersion > 33.0}
+  if Supports(BorlandIDEServices, IOTAIDEThemingServices, LThemingServices) and
+{$ELSE}
+  if Supports(BorlandIDEServices, IOTAIDEThemingServices250, LThemingServices) and
+{$IFEND}
+    LThemingServices.IDEThemingEnabled and (Component <> nil) then
+    LThemingServices.ApplyTheme(Component);
+{$IFEND}
+end;
+
+function IDEStyleServices: TCustomStyleServices;
+{$IF CompilerVersion >= 32.0}
+var
+{$IF CompilerVersion > 33.0}
+  LThemingServices: IOTAIDEThemingServices;
+{$ELSE}
+  LThemingServices: IOTAIDEThemingServices250;
+{$IFEND}
+{$IFEND}
+begin
+  Result := TStyleManager.ActiveStyle;
+{$IF CompilerVersion >= 32.0}
+{$IF CompilerVersion > 33.0}
+  if Supports(BorlandIDEServices, IOTAIDEThemingServices, LThemingServices) and
+{$ELSE}
+  if Supports(BorlandIDEServices, IOTAIDEThemingServices250, LThemingServices) and
+{$IFEND}
+    LThemingServices.IDEThemingEnabled then
+    Result := LThemingServices.StyleServices;
+{$IFEND}
+end;
+
+procedure ApplyIDEStyle(Control: TControl);
+var
+  LIndex: Integer;
+  LTextColor: TColor;
+  LWinControl: TWinControl;
+  LWindowColor: TColor;
+  LButtonFaceColor: TColor;
+begin
+  if Control = nil then
+    Exit;
+
+  LButtonFaceColor := IDEStyleServices.GetSystemColor(clBtnFace);
+  LWindowColor := IDEStyleServices.GetSystemColor(clWindow);
+  LTextColor := IDEStyleServices.GetSystemColor(clWindowText);
+
+  if Control is TCustomForm then
+  begin
+    TCustomForm(Control).Color := LButtonFaceColor;
+    TCustomForm(Control).Font.Color := LTextColor;
+  end
+  else if Control is TPanel then
+  begin
+    TPanel(Control).ParentBackground := False;
+    TPanel(Control).Color := LButtonFaceColor;
+    TPanel(Control).Font.Color := LTextColor;
+    TPanel(Control).StyleElements := [seFont, seClient, seBorder];
+  end
+  else if Control is TLabel then
+  begin
+    TLabel(Control).Font.Color := LTextColor;
+    TLabel(Control).StyleElements := [seFont];
+  end
+  else if Control is TButton then
+  begin
+    TButton(Control).Font.Color := LTextColor;
+    TButton(Control).StyleElements := [seFont, seClient, seBorder];
+  end
+  else if Control is TEdit then
+  begin
+    TEdit(Control).Color := LWindowColor;
+    TEdit(Control).Font.Color := LTextColor;
+    TEdit(Control).StyleElements := [seFont, seClient, seBorder];
+  end;
+
+  if Control is TWinControl then
+  begin
+    LWinControl := TWinControl(Control);
+    for LIndex := 0 to LWinControl.ControlCount - 1 do
+      ApplyIDEStyle(LWinControl.Controls[LIndex]);
+  end;
+end;
 
 procedure AddLabeledEdit(AOwner: TComponent; AParent: TWinControl; const ACaption: string;
   var ATop: Integer; out AEdit: TEdit; const Text: string);
@@ -140,12 +238,97 @@ begin
 end;
 
 procedure ShowGit4DAboutDialog;
+var
+  LAccentPanel: TPanel;
+  LBodyPanel: TPanel;
+  LButtonPanel: TPanel;
+  LForm: TForm;
+  LInfoLabel: TLabel;
+  LOkButton: TButton;
+  LSubtitleLabel: TLabel;
+  LTitleLabel: TLabel;
 begin
-  MessageDlg(cG4DProductName + sLineBreak + sLineBreak +
-    'RAD Studio Git client for Delphi and C++Builder.' + sLineBreak +
-    'This build provides the IDE integration and Git command surface foundation.' + sLineBreak +
-    'By Ali Dehbansiahkarbon(adehban@gmail.com)',
-    mtInformation, [mbOK], 0);
+  LForm := TForm.Create(nil);
+  try
+    LForm.Caption := 'About ' + cG4DProductName;
+    LForm.BorderStyle := bsDialog;
+    LForm.Position := poScreenCenter;
+    LForm.ClientWidth := 520;
+    LForm.ClientHeight := 260;
+    LForm.Font.Name := 'Segoe UI';
+    LForm.Font.Size := 9;
+
+    LAccentPanel := TPanel.Create(LForm);
+    LAccentPanel.Parent := LForm;
+    LAccentPanel.Align := alTop;
+    LAccentPanel.Height := 8;
+    LAccentPanel.BevelOuter := bvNone;
+    LAccentPanel.Color := IDEStyleServices.GetSystemColor(clHighlight);
+    LAccentPanel.ParentBackground := False;
+
+    LBodyPanel := TPanel.Create(LForm);
+    LBodyPanel.Parent := LForm;
+    LBodyPanel.Align := alClient;
+    LBodyPanel.BevelOuter := bvNone;
+    LBodyPanel.Padding.Left := 24;
+    LBodyPanel.Padding.Top := 18;
+    LBodyPanel.Padding.Right := 24;
+    LBodyPanel.Padding.Bottom := 12;
+
+    LTitleLabel := TLabel.Create(LForm);
+    LTitleLabel.Parent := LBodyPanel;
+    LTitleLabel.Align := alTop;
+    LTitleLabel.Caption := cG4DProductName;
+    LTitleLabel.Font.Size := 22;
+    LTitleLabel.Font.Style := [fsBold];
+    LTitleLabel.Height := 38;
+    LTitleLabel.AutoSize := False;
+
+    LSubtitleLabel := TLabel.Create(LForm);
+    LSubtitleLabel.Parent := LBodyPanel;
+    LSubtitleLabel.Align := alTop;
+    LSubtitleLabel.Caption := 'RAD Studio Git client for Delphi and C++Builder';
+    LSubtitleLabel.Font.Size := 10;
+    LSubtitleLabel.Height := 26;
+    LSubtitleLabel.AutoSize := False;
+
+    LInfoLabel := TLabel.Create(LForm);
+    LInfoLabel.Parent := LBodyPanel;
+    LInfoLabel.Align := alTop;
+    LInfoLabel.AutoSize := False;
+    LInfoLabel.WordWrap := True;
+    LInfoLabel.Height := 96;
+    LInfoLabel.Caption :=
+      'Git4D adds IDE menus, editor and Project Explorer Git actions, optional external client integration, ' +
+      'and a dockable Workbench for repository-oriented workflows.' + sLineBreak + sLineBreak +
+      'Author: Ali Dehbansiahkarbon' + sLineBreak +
+      'Email: adehban@gmail.com';
+
+    LButtonPanel := TPanel.Create(LForm);
+    LButtonPanel.Parent := LForm;
+    LButtonPanel.Align := alBottom;
+    LButtonPanel.Height := 52;
+    LButtonPanel.BevelOuter := bvNone;
+
+    LOkButton := TButton.Create(LForm);
+    LOkButton.Parent := LButtonPanel;
+    LOkButton.Caption := 'OK';
+    LOkButton.ModalResult := mrOK;
+    LOkButton.Default := True;
+    LOkButton.Cancel := True;
+    LOkButton.Width := 88;
+    LOkButton.Height := 28;
+    LOkButton.Left := LForm.ClientWidth - LOkButton.Width - 24;
+    LOkButton.Top := 12;
+
+    ApplyIDETheme(LForm);
+    ApplyIDEStyle(LForm);
+    LAccentPanel.Color := IDEStyleServices.GetSystemColor(clHighlight);
+    LTitleLabel.Font.Style := [fsBold];
+    LForm.ShowModal;
+  finally
+    LForm.Free;
+  end;
 end;
 
 end.
